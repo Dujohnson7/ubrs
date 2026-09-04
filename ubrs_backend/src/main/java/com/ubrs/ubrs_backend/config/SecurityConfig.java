@@ -1,5 +1,4 @@
-﻿package com.ubrs.ubrs_backend.config;
-
+package com.ubrs.ubrs_backend.config;
 
 import com.ubrs.ubrs_backend.service.users.UserDetailServiceImpl;
 import com.ubrs.ubrs_backend.service.users.UserDetailsImpl;
@@ -37,7 +36,7 @@ public class SecurityConfig {
     private final UserDetailServiceImpl userDetailService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins:http://localhost:3300}")
     private String allowedOrigins;
 
     @Bean
@@ -100,5 +99,4 @@ public class SecurityConfig {
             return Optional.of(authentication.getName());
         };
     }
-
 }

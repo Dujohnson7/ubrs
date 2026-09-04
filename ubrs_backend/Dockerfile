@@ -1,23 +1,19 @@
-﻿# ---- Stage 1: Build ----
-FROM eclipse-temurin:17-jdk AS build
+# ---- Stage 1: Build ----
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first for dependency caching
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
+# Copy pom.xml for dependency caching
+COPY pom.xml ./
 
-# Make mvnw executable
-RUN chmod +x mvnw
-
-# Download dependencies (cached layer)
-RUN ./mvnw dependency:resolve -B
+# Pre-fetch dependencies
+RUN mvn dependency:go-offline -B || true
 
 # Copy source code
 COPY src/ src/
 
-# Build the application (skip tests for faster builds)
-RUN ./mvnw package -DskipTests -B
+# Build JAR package (skip unit tests for production build)
+RUN mvn clean package -DskipTests -B
 
 # ---- Stage 2: Runtime ----
 FROM eclipse-temurin:17-jre
@@ -30,8 +26,8 @@ RUN mkdir -p /app/uploads
 # Copy the built JAR from the build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose port (Render sets PORT env var)
+# Expose port
 EXPOSE 7700
 
-# Run the application
+# Run the Spring Boot application
 ENTRYPOINT ["java", "-jar", "app.jar"]
