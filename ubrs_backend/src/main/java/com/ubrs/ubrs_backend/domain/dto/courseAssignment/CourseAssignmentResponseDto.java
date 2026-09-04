@@ -1,4 +1,4 @@
-package com.ubrs.ubrs_backend.domain.dto.classAssignment;
+package com.ubrs.ubrs_backend.domain.dto.courseAssignment;
 
 import com.ubrs.ubrs_backend.util.EAssignmentState;
 import lombok.Getter;
@@ -9,9 +9,9 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class ClassAssignmentResponseDto {
+public class CourseAssignmentResponseDto {
 
-    private UUID id;
+    private UUID courseAssignmentId;
 
     private UUID teacherId;
 

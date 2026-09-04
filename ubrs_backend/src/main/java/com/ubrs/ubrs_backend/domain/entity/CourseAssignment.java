@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Setter
 @Getter
 @Entity
-public class ClassAssignment extends AbstractBaseEntity {
+public class CourseAssignment extends AbstractBaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "teacherId")

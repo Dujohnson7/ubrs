@@ -12,6 +12,7 @@ import { studentService } from "../../services/studentService";
 import { studentReportService } from "../../services/studentReportService";
 import { gradeService, ClassGradeStatusProjection } from "../../services/gradeService";
 import { toast } from "../../utils/toast";
+import { loadReportSignatories } from "./reportSignatures";
 
 type ClassRow = ClassInfo & { classLevel: string; hasGrades: boolean; approvedSubjects: number };
 
@@ -79,6 +80,7 @@ export default function StudentReports() {
             level: formatLevel(c.classLevel),
             classLevel: formatLevel(c.classLevel),
             classTeacher: c.classTeacherName || "—",
+            classTeacherId: c.classTeacherId,
             studentCount: countByClass[c.schoolClassId] || 0,
             academicYear: defaultYearLabel,
             academicYearId: defaultYear,
@@ -135,13 +137,30 @@ export default function StudentReports() {
     level: item.level,
     classLevel: item.classLevel,
     classTeacher: item.classTeacher,
+    classTeacherId: item.classTeacherId,
+    classTeacherSignature: item.classTeacherSignature,
+    headteacher: item.headteacher,
+    headteacherSignature: item.headteacherSignature,
     studentCount: item.studentCount,
     academicYear: selectedYear?.fiscalYear || item.academicYear,
     academicYearId: yearFilter || item.academicYearId,
     term: termFilter || undefined,
   });
 
-  const handleView = (item: ClassRow) => {
+  const withSignatories = async (item: ClassRow): Promise<ClassInfo> => {
+    const base = toClassInfo(item);
+    const signatories = await loadReportSignatories(item.id, base.classTeacher);
+    return {
+      ...base,
+      classTeacherId: signatories.classTeacherId,
+      classTeacher: signatories.classTeacher || base.classTeacher,
+      classTeacherSignature: signatories.classTeacherSignature,
+      headteacher: signatories.headteacher,
+      headteacherSignature: signatories.headteacherSignature,
+    };
+  };
+
+  const handleView = async (item: ClassRow) => {
     if (!yearFilter) {
       toast.error("Select an academic year first");
       return;
@@ -150,7 +169,12 @@ export default function StudentReports() {
       toast.error("Select a term first");
       return;
     }
-    navigate(`/student-reports/${item.id}`, { state: { classData: toClassInfo(item) } });
+    try {
+      const classData = await withSignatories(item);
+      navigate(`/student-reports/${item.id}`, { state: { classData } });
+    } catch {
+      navigate(`/student-reports/${item.id}`, { state: { classData: toClassInfo(item) } });
+    }
   };
 
   const handlePrintAll = async (item: ClassRow) => {
@@ -164,7 +188,7 @@ export default function StudentReports() {
     }
     setPrintingClassId(item.id);
     try {
-      const classInfo = toClassInfo(item);
+      const classInfo = await withSignatories(item);
       const rows = await studentReportService.getStudentGradeReport(yearFilter, item.id);
       const reports = buildStudentReportsFromGrades(classInfo, rows, termFilter);
       if (reports.length === 0) {

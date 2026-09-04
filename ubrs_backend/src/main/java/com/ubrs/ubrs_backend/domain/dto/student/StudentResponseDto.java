@@ -1,5 +1,6 @@
 package com.ubrs.ubrs_backend.domain.dto.student;
 
+import com.ubrs.ubrs_backend.util.EGender;
 import com.ubrs.ubrs_backend.util.EStudentState;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,9 +10,9 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class StudentResponse {
+public class StudentResponseDto {
 
-    private UUID id;
+    private UUID studentId;
 
     private String studentCode;
 
@@ -21,7 +22,7 @@ public class StudentResponse {
 
     private String lastName;
 
-    private String gender;
+    private EGender gender;
 
     private LocalDate dateOfBirth;
 

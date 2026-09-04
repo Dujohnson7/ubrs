@@ -1,4 +1,4 @@
-package com.ubrs.ubrs_backend.domain.projection;
+package com.ubrs.ubrs_backend.domain.projection.grade;
 
 import com.ubrs.ubrs_backend.util.ESchoolLevel;
 import com.ubrs.ubrs_backend.util.ETerm;
@@ -11,9 +11,13 @@ public interface ClassGradeStatusProjection {
 
     String getClassName();
 
-    ESchoolLevel getLevel();
+    ESchoolLevel getClassLevel();
 
     String getClassTeacher();
+
+    UUID getAcademicYearId();
+
+    String getAcademicYear();
 
     ETerm getTerm();
 

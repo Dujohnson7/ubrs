@@ -1,27 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-
-// Grade distribution data per class level based on sampleApprovalData marks
-const gradeData = [
-  { level: "Primary 1A", a1: 3, b2: 4, b3: 2, c4: 1, d: 0, total: 10 },
-  { level: "Primary 1B", a1: 4, b2: 3, b3: 2, c4: 1, d: 0, total: 10 },
-  { level: "Primary 2A", a1: 2, b2: 5, b3: 2, c4: 1, d: 0, total: 10 },
-  { level: "Nursery A",  a1: 3, b2: 1, b3: 0, c4: 0, d: 0, total: 4  },
-];
+import { headerTeacherDashboardService, GradeDistribution } from "../../services/headerTeacherDashboardService";
 
 export default function DemographicCard() {
   const [isOpen, setIsOpen] = useState(false);
+  const [data, setData] = useState<GradeDistribution | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await headerTeacherDashboardService.getGradeDistribution();
+        setData(result);
+      } catch (e) {
+        console.error(e);
+        setError(e instanceof Error ? e.message : "Failed to load grade distribution");
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, []);
 
   const series = [
-    { name: "A1 (≥80)", data: gradeData.map((d) => d.a1) },
-    { name: "B2 (70–79)", data: gradeData.map((d) => d.b2) },
-    { name: "B3 (60–69)", data: gradeData.map((d) => d.b3) },
-    { name: "C4 (50–59)", data: gradeData.map((d) => d.c4) },
-    { name: "D (<50)", data: gradeData.map((d) => d.d) },
+    { name: "A1 (≥80)", data: data?.classData.map((d) => d.a1) || [] },
+    { name: "B2 (70–79)", data: data?.classData.map((d) => d.b2) || [] },
+    { name: "B3 (60–69)", data: data?.classData.map((d) => d.b3) || [] },
+    { name: "C4 (50–59)", data: data?.classData.map((d) => d.c4) || [] },
+    { name: "D (<50)", data: data?.classData.map((d) => d.d) || [] },
   ];
 
   const options: ApexOptions = {
@@ -43,7 +57,7 @@ export default function DemographicCard() {
     },
     dataLabels: { enabled: false },
     xaxis: {
-      categories: gradeData.map((d) => d.level),
+      categories: data?.classData.map((d) => d.className) || [],
       axisBorder: { show: false },
       axisTicks: { show: false },
       labels: { style: { fontSize: "11px", colors: ["#6B7280"] } },
@@ -98,21 +112,31 @@ export default function DemographicCard() {
       </div>
 
       <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="min-w-[300px]">
-          <Chart options={options} series={series} type="bar" height={220} />
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-[220px]">
+            <div className="text-gray-500">Loading...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-[220px]">
+            <div className="text-red-500 text-sm">{error}</div>
+          </div>
+        ) : (
+          <div className="min-w-[300px]">
+            <Chart options={options} series={series} type="bar" height={220} />
+          </div>
+        )}
       </div>
 
       {/* Legend summary */}
       <div className="mt-4 space-y-2">
-        {gradeData.map((d) => {
+        {data?.classData.map((d) => {
           const pctA1 = Math.round((d.a1 / d.total) * 100);
           return (
-            <div key={d.level} className="flex items-center justify-between">
+            <div key={d.className} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="size-2.5 rounded-full bg-gradient-to-r from-[#1e3a5f] to-[#2563eb]" />
                 <span className="font-semibold text-gray-800 text-theme-sm dark:text-white/90">
-                  {d.level}
+                  {d.className}
                 </span>
               </div>
               <div className="flex w-full max-w-[160px] items-center gap-2">

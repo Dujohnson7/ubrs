@@ -1,19 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { CalenderIcon, ChevronDownIcon, GridIcon, HorizontaLDots, ListIcon, PageIcon, PieChartIcon, TableIcon, UserCircleIcon, UserIcon, TaskIcon, } from "../icons";
-import { useSidebar } from "../context/SidebarContext"; 
+import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "../hooks/useAuth";
+import { ERole } from "../services/authService";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  roles?: ERole[];
 };
 
-const navItems: NavItem[] = [
+const allNavItems: NavItem[] = [
   {
     icon: <GridIcon />,
-    name: "Dashboard", 
+    name: "Dashboard",
     path: "/",
   },
   {
@@ -25,59 +28,76 @@ const navItems: NavItem[] = [
     name: "Users",
     icon: <UserIcon />,
     path: "/users",
+    roles: [ERole.HEADERTEACHER],
   },
   {
     icon: <CalenderIcon />,
     name: "Academic",
     path: "/academic-years",
-  }, 
+    roles: [ERole.HEADERTEACHER],
+  },
   {
     icon: <ListIcon />,
     name: "Classes",
     path: "/classes",
-  }, 
+    roles: [ERole.HEADERTEACHER],
+  },
   {
     icon: <PageIcon />,
     name: "Courses",
     path: "/courses",
-  }, 
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
+  },
   {
     icon: <UserCircleIcon />,
     name: "Students",
     path: "/students",
-  }, 
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER],
+  },
   {
     icon: <TaskIcon />,
     name: "Assignments",
     path: "/assignments",
-  }, 
+    roles: [ERole.HEADERTEACHER],
+  },
   {
     icon: <PieChartIcon />,
     name: "Grades",
     path: "/grades",
-  }, 
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
+  },
   {
     icon: <PageIcon />,
     name: "Marks Approval",
     path: "/marks-approval",
-  },  
+    roles: [ERole.HEADERTEACHER],
+  },
   {
     icon: <TableIcon />,
     name: "Reports",
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
     subItems: [
       { name: "Student Reports", path: "/student-reports" },
-      //{ name: "Marks Approval", path: "/marks-approval" },
       { name: "School Report", path: "/school-report" },
     ],
   },
 ];
 
-  // othersItems intentionally left empty per request
-  const othersItems: NavItem[] = [];
+const othersItems: NavItem[] = [];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const { user } = useAuth();
+
+  const navItems = useMemo(() => {
+    const role = user?.role;
+    if (!role) return allNavItems.filter((n) => !n.roles);
+    if (role === ERole.PARENT) {
+      return allNavItems.filter((n) => n.path === "/" || n.path === "/profile");
+    }
+    return allNavItems.filter((n) => !n.roles || n.roles.includes(role));
+  }, [user?.role]);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -116,7 +136,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [location, isActive]);
+  }, [location, isActive, navItems]);
 
   useEffect(() => {
     if (openSubmenu !== null) {

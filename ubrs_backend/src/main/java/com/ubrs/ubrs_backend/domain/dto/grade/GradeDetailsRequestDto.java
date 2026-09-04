@@ -8,9 +8,7 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class GradeDetailsRequest {
-
-    private UUID gradeId;
+public class GradeDetailsRequestDto {
 
     private UUID studentId;
 

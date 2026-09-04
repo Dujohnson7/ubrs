@@ -1,19 +1,21 @@
 package com.ubrs.ubrs_backend.domain.dto.grade;
 
 import com.ubrs.ubrs_backend.util.EGradeState;
+import com.ubrs.ubrs_backend.util.ESchoolLevel;
 import com.ubrs.ubrs_backend.util.ETerm;
 import com.ubrs.ubrs_backend.util.GradeType;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Setter
 @Getter
-public class GradeResponse {
+public class GradeResponseDto {
 
-    private UUID id;
+    private UUID gradeId;
 
     private UUID academicYearId;
 
@@ -25,7 +27,11 @@ public class GradeResponse {
 
     private String schoolClassName;
 
+    private ESchoolLevel classLevel;
+
     private UUID courseId;
+
+    private String courseCode;
 
     private String courseName;
 
@@ -35,13 +41,12 @@ public class GradeResponse {
 
     private EGradeState submitStatus;
 
-    private UUID approvedBy;
+    //private String approvedBy;
 
-    private String approvedByName;
-
-    private UUID rejectedBy;
-
-    private String rejectedByName;
+    //private String rejectedBy;
 
     private String feedback;
+
+    private List<GradeDetailsResponseDto> gradeDetails;
+
 }

@@ -1,7 +1,7 @@
 import { GroupIcon, BoxIconLine } from "../../icons";
 import Badge from "../ui/badge/Badge";
+import { HeaderTeacherMetrics } from "../../services/headerTeacherDashboardService";
 
-// School-specific SVG icons as inline components
 function BookIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -39,59 +39,103 @@ function CalendarYearIcon({ className }: { className?: string }) {
   );
 }
 
-// KPI data — reflects what the localhost:3300 dashboard shows
-const metrics = [
-  {
-    label: "Total Students",
-    value: "145",
-    color: "success" as const,
-    bg: "bg-blue-50 dark:bg-blue-900/20",
-    icon: <GroupIcon className="text-blue-600 size-6 dark:text-blue-400" />,
-  },
-  {
-    label: "Total Teachers",
-    value: "5", 
-    color: "success" as const,
-    bg: "bg-indigo-50 dark:bg-indigo-900/20",
-    icon: <AcademicCapIcon className="text-indigo-600 size-6 dark:text-indigo-400" />,
-  },
-  {
-    label: "Active Classes",
-    value: "5",
-    change: "Term 1",
-    color: "warning" as const,
-    bg: "bg-amber-50 dark:bg-amber-900/20",
-    icon: <BookIcon className="text-amber-600 size-6 dark:text-amber-400" />,
-  },
-  {
-    label: "Courses",
-    value: "12", 
-    color: "success" as const,
-    bg: "bg-teal-50 dark:bg-teal-900/20",
-    icon: <BoxIconLine className="text-teal-600 size-6 dark:text-teal-400" />,
-  },
-  {
-    label: "Marks Approved",
-    value: "5 / 16",
-    change: "31%",
-    color: "warning" as const,
-    bg: "bg-green-50 dark:bg-green-900/20",
-    icon: <CheckBadgeIcon className="text-green-600 size-6 dark:text-green-400" />,
-  },
-  {
-    label: "Academic Years",
-    value: "3",
-    change: "2025–2026",
-    color: "success" as const,
-    bg: "bg-purple-50 dark:bg-purple-900/20",
-    icon: <CalendarYearIcon className="text-purple-600 size-6 dark:text-purple-400" />,
-  },
-];
+type MetricCard = {
+  label: string;
+  value: string;
+  change?: string;
+  color: "success" | "warning" | "error" | "info" | "light";
+  bg: string;
+  icon: React.ReactNode;
+};
 
-export default function SchoolMetrics() {
+function buildCards(m: HeaderTeacherMetrics): MetricCard[] {
+  const approvalPct =
+    m.marksSubjects > 0 ? Math.round((m.marksApproved / m.marksSubjects) * 100) : 0;
+
+  return [
+    {
+      label: "Total Students",
+      value: String(m.totalStudents),
+      change: `N ${m.nurseryStudents} · P ${m.primaryStudents}`,
+      color: "success",
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+      icon: <GroupIcon className="text-blue-600 size-6 dark:text-blue-400" />,
+    },
+    {
+      label: "Total Teachers",
+      value: String(m.totalTeachers),
+      change: `${m.totalClassTeachers} class teachers`,
+      color: "success",
+      bg: "bg-indigo-50 dark:bg-indigo-900/20",
+      icon: <AcademicCapIcon className="text-indigo-600 size-6 dark:text-indigo-400" />,
+    },
+    {
+      label: "Active Classes",
+      value: String(m.totalClasses),
+      change: m.activeAcademicYear?.fiscalYear || "—",
+      color: "warning",
+      bg: "bg-amber-50 dark:bg-amber-900/20",
+      icon: <BookIcon className="text-amber-600 size-6 dark:text-amber-400" />,
+    },
+    {
+      label: "Courses",
+      value: String(m.totalCourses),
+      change: `N ${m.nurseryCourses} · P ${m.primaryCourses}`,
+      color: "success",
+      bg: "bg-teal-50 dark:bg-teal-900/20",
+      icon: <BoxIconLine className="text-teal-600 size-6 dark:text-teal-400" />,
+    },
+    {
+      label: "Marks Approved",
+      value: m.marksSubjects > 0 ? `${m.marksApproved} / ${m.marksSubjects}` : "—",
+      change: m.marksSubjects > 0 ? `${approvalPct}%` : "No data",
+      color: approvalPct >= 70 ? "success" : approvalPct > 0 ? "warning" : "light",
+      bg: "bg-green-50 dark:bg-green-900/20",
+      icon: <CheckBadgeIcon className="text-green-600 size-6 dark:text-green-400" />,
+    },
+    {
+      label: "Academic Years",
+      value: String(m.totalAcademicYears),
+      change: m.activeAcademicYear?.fiscalYear || "No active year",
+      color: "success",
+      bg: "bg-purple-50 dark:bg-purple-900/20",
+      icon: <CalendarYearIcon className="text-purple-600 size-6 dark:text-purple-400" />,
+    },
+  ];
+}
+
+type Props = {
+  metrics: HeaderTeacherMetrics | null;
+  loading?: boolean;
+};
+
+export default function SchoolMetrics({ metrics, loading }: Props) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-[120px] animate-pulse rounded-2xl border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-white/[0.03]"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-800">
+        No dashboard metrics available.
+      </div>
+    );
+  }
+
+  const cards = buildCards(metrics);
+
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5">
-      {metrics.map((m) => (
+      {cards.map((m) => (
         <div
           key={m.label}
           className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] md:p-5"
@@ -99,7 +143,7 @@ export default function SchoolMetrics() {
           <div className={`flex items-center justify-center w-11 h-11 ${m.bg} rounded-xl`}>
             {m.icon}
           </div>
-          <div className="flex items-end justify-between mt-4">
+          <div className="flex items-end justify-between mt-4 gap-2">
             <div>
               <span className="text-xs text-gray-500 dark:text-gray-400 leading-tight block">
                 {m.label}
@@ -108,9 +152,7 @@ export default function SchoolMetrics() {
                 {m.value}
               </h4>
             </div>
-            <Badge color={m.color}> 
-              {m.change}
-            </Badge>
+            {m.change ? <Badge color={m.color}>{m.change}</Badge> : null}
           </div>
         </div>
       ))}

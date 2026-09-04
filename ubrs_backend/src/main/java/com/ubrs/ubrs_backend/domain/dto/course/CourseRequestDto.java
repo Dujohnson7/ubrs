@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class CourseRequest {
+public class CourseRequestDto {
 
     private String courseCode;
 

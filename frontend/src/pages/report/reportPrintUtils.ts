@@ -53,6 +53,7 @@ export interface StudentReport {
 
   // Signatures
   classTeacher: string;
+  classTeacherSignature: string;
   headteacher: string;
   headteacherSignature: string;
 
@@ -72,6 +73,10 @@ export interface ClassInfo {
   level: string;
   classLevel?: string;
   classTeacher: string;
+  classTeacherId?: string;
+  classTeacherSignature?: string;
+  headteacher?: string;
+  headteacherSignature?: string;
   studentCount: number;
   academicYear: string;
   academicYearId?: string;
@@ -354,8 +359,9 @@ const generateStudents = (classInfo: ClassInfo): StudentReport[] => {
       
       // Signatures
       classTeacher: classInfo.classTeacher,
-      headteacher: "GASHIRABAKE Anastase",
-      headteacherSignature: "",
+      classTeacherSignature: classInfo.classTeacherSignature || "",
+      headteacher: classInfo.headteacher || "",
+      headteacherSignature: classInfo.headteacherSignature || "",
       
       // Grading Scale
       gradingScale,
@@ -394,7 +400,7 @@ const num = (v: number | string | null | undefined): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const emptyTermMarks = () => ({ eu: 0, et: 0, tot: 0, percentage: 0, grade: "â€”" });
+const emptyTermMarks = () => ({ eu: 0, et: 0, tot: 0, percentage: 0, grade: "—" });
 
 const gradeFromPct = (pct: number): string => {
   if (pct >= 80) return "A";
@@ -415,7 +421,7 @@ const calcTermMarks = (eu: number, et: number, maxEu: number, maxEt: number) => 
     et: Math.round(et * 10) / 10,
     tot: Math.round(tot * 10) / 10,
     percentage,
-    grade: percentage > 0 ? gradeFromPct(percentage) : "â€”",
+    grade: percentage > 0 ? gradeFromPct(percentage) : "—",
   };
 };
 
@@ -581,8 +587,8 @@ export const buildStudentReportsFromGrades = (
           totalET: Math.round(annualET * 10) / 10,
           totalTOT: Math.round(annualTOT * 10) / 10,
           percentage: annualPercentage,
-          grade: annualPercentage > 0 ? gradeFromPct(annualPercentage) : "â€”",
-          position: "â€”",
+          grade: annualPercentage > 0 ? gradeFromPct(annualPercentage) : "—",
+          position: "—",
         },
       },
       classTeacherComment: "",
@@ -593,8 +599,9 @@ export const buildStudentReportsFromGrades = (
           : "Repeated"
         : "Ongoing",
       classTeacher: classInfo.classTeacher,
-      headteacher: "",
-      headteacherSignature: "",
+      classTeacherSignature: classInfo.classTeacherSignature || "",
+      headteacher: classInfo.headteacher || "",
+      headteacherSignature: classInfo.headteacherSignature || "",
       gradingScale,
       abbreviations,
       // keep for ranking sort below
@@ -620,62 +627,78 @@ export const buildStudentReportsFromGrades = (
 
 export const getGradeFromPct = (pct: number): string => gradeFromPct(pct);
 
-// ===================== QR MATRIX CODE GENERATOR =====================
-export const generateQRCodeSVG = (data: string, size = 120): string => {
-  const MODULES = 21;
-  const cellSize = Math.floor(size / MODULES);
-  const actual = cellSize * MODULES;
-  const grid: boolean[][] = Array.from({ length: MODULES }, () => Array(MODULES).fill(false));
+// ===================== CODE128 BARCODE (scannable) =====================
+/** Patterns for Code 128 values 0–106 (Start B=104, Stop=106). */
+const CODE128_PATTERNS = [
+  "11011001100","11001101100","11001100110","10010011000","10010001100","10001001100","10011001000","10011000100","10001100100","11001001000",
+  "11001000100","11000100100","10110011100","10011011100","10011001110","10111001100","10011101100","10011100110","11001110010","11001011100",
+  "11001001110","11011100100","11001110100","11101101110","11101001100","11100101100","11100100110","11101100100","11100110100","11100111010",
+  "11011011000","11011000110","11000110110","10100011000","10001011000","10001000110","10110001000","10001101000","10001100010","11010001000",
+  "11000101000","11000100010","10110111000","10110001110","10001101110","10111011000","10111000110","10001110110","11101110110","11010001110",
+  "11000101110","11011101000","11011100010","11011101110","11101011000","11101000110","11100010110","11101101000","11101100010","11100011010",
+  "11101111010","11001000010","11110001010","10100110000","10100001100","10010110000","10010000110","10000101100","10000100110","10110010000",
+  "10110000100","10011010000","10011000010","10000110100","10000110010","11000010010","11001010000","11110111010","11000010100","10001111010",
+  "10100111100","10010111100","10010011110","10111100100","10011110100","10011110010","11110100100","11110010100","11110010010","11011011110",
+  "11011110110","11110110110","10101111000","10100011110","10001011110","10111101000","10111100010","11110101000","11110100010","10111011110",
+  "10111101110","11101011110","11110101110","11010000100","11010010000","11010011100","1100011101011",
+];
 
-  const drawFinder = (row: number, col: number) => {
-    for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) {
-      const outer = r === 0 || r === 6 || c === 0 || c === 6;
-      const inner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-      grid[row + r][col + c] = outer || inner;
-    }
-  };
-  drawFinder(0, 0); drawFinder(0, MODULES - 7); drawFinder(MODULES - 7, 0);
-  for (let i = 8; i < MODULES - 8; i++) { grid[6][i] = i % 2 === 0; grid[i][6] = i % 2 === 0; }
-  grid[8][MODULES - 8] = true;
-
-  const bytes: number[] = [];
-  let h = 0x12345678;
-  for (let i = 0; i < data.length; i++) {
-    h = ((h << 5) ^ (h >>> 27) ^ data.charCodeAt(i)) >>> 0;
-    bytes.push(h & 0xff, (h >>> 8) & 0xff, (h >>> 16) & 0xff, (h >>> 24) & 0xff);
+/** Generate a scannable Code 128B barcode SVG for the given text. */
+export const generateBarcodeSVG = (raw: string, barHeight = 42): string => {
+  const text = (raw || "UBRS").replace(/[^\x20-\x7E]/g, "?").slice(0, 32);
+  const codes: number[] = [104]; // Start B
+  for (let i = 0; i < text.length; i++) {
+    codes.push(text.charCodeAt(i) - 32);
   }
-  while (bytes.length < MODULES * MODULES) bytes.push(((bytes[bytes.length - 1] * 0x6d2b + 0x1f) ^ (bytes.length * 0x3f)) & 0xff);
+  let checksum = codes[0];
+  for (let i = 1; i < codes.length; i++) {
+    checksum += codes[i] * i;
+  }
+  codes.push(checksum % 103);
+  codes.push(106); // Stop
 
-  const reserved = (r: number, c: number) =>
-    (r < 9 && c < 9) || (r < 9 && c >= MODULES - 8) || (r >= MODULES - 8 && c < 9) || r === 6 || c === 6;
-
-  let bit = 0;
-  for (let r = 0; r < MODULES; r++) for (let c = 0; c < MODULES; c++) {
-    if (!reserved(r, c)) { grid[r][c] = ((bytes[bit % bytes.length] >> (bit % 8)) & 1) === 1; bit++; }
+  let pattern = "";
+  for (const code of codes) {
+    pattern += CODE128_PATTERNS[code] || CODE128_PATTERNS[0];
   }
 
+  const moduleW = 1.4;
+  const width = Math.max(pattern.length * moduleW, 80);
+  let x = 0;
   let rects = "";
-  for (let r = 0; r < MODULES; r++) for (let c = 0; c < MODULES; c++) {
-    if (grid[r][c]) rects += `<rect x="${c * cellSize}" y="${r * cellSize}" width="${cellSize}" height="${cellSize}" fill="#000"/>`;
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === "1") {
+      rects += `<rect x="${x}" y="0" width="${moduleW}" height="${barHeight}" fill="#000"/>`;
+    }
+    x += moduleW;
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${actual}" height="${actual}" viewBox="0 0 ${actual} ${actual}" shape-rendering="crispEdges"><rect width="${actual}" height="${actual}" fill="white"/>${rects}</svg>`;
+  const labelY = barHeight + 12;
+  const totalH = barHeight + 16;
+  const safeLabel = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalH}" viewBox="0 0 ${width} ${totalH}" shape-rendering="crispEdges">
+    <rect width="${width}" height="${totalH}" fill="#fff"/>
+    ${rects}
+    <text x="${width / 2}" y="${labelY}" text-anchor="middle" font-family="monospace" font-size="9" fill="#000">${safeLabel}</text>
+  </svg>`;
 };
 
 // ===================== REPORT CARD HTML BUILDER =====================
 export const buildMarksheetHTML = (student: StudentReport): string => {
-  const qrSVG = generateQRCodeSVG(`${student.registrationId}|${student.class}|${student.academicYear}|${student.reportTerm}`);
-  const qrBase64 = `data:image/svg+xml;base64,${btoa(qrSVG)}`;
+  const barcodeSVG = generateBarcodeSVG(student.registrationId || student.studentNames);
+  const barcodeBase64 = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(barcodeSVG)))}`;
   const fullYear = isFullYearReport(student.reportTerm);
   const termKey = student.reportTerm === "TERM1" ? "term1" : student.reportTerm === "TERM2" ? "term2" : "term3";
   const termLabel = formatReportTermLabel(student.reportTerm);
   const logoSrc = typeof window !== "undefined" ? `${window.location.origin}/images/logo/logo.png` : "/images/logo/logo.png";
   const levelTitle = (student.level || "ORDINARY LEVEL").toUpperCase();
+  const cellPad = "2px 3px";
+  const cellFont = "7.5px";
   const td = (v: string | number, opts?: { bold?: boolean; red?: boolean; align?: string }) => {
     const color = opts?.red ? "#dc2626" : "#000";
     const weight = opts?.bold ? "700" : "400";
     const align = opts?.align || "center";
-    return `<td style="padding:5px 4px;border:1px solid #000;text-align:${align};font-size:8.5px;color:${color};font-weight:${weight};line-height:1.35;">${v}</td>`;
+    return `<td style="padding:${cellPad};border:1px solid #000;text-align:${align};font-size:${cellFont};color:${color};font-weight:${weight};line-height:1.2;">${v}</td>`;
   };
   const markVal = (n: number, asPct = false) => {
     const text = asPct ? `${n.toFixed(2)}` : n.toFixed(1);
@@ -769,85 +792,100 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         ${termSummaryCells(summary)}
       </tr>`;
 
+  const spanCell = (content: string, span: number) =>
+    `<td colspan="${span}" style="padding:${cellPad};border:1px solid #000;text-align:center;font-size:${cellFont};font-weight:700;">${content}</td>`;
+
   const spanTermSummary = (label: string, t1: string, t2: string, t3: string, ann: string) => fullYear
     ? `<tr>
         ${td(label, { align: "left", bold: true })}
-        <td colspan="${colSpanMax}" style="padding:5px 4px;border:1px solid #000;"></td>
-        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t1}</td>
-        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t2}</td>
-        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t3}</td>
-        <td colspan="${colSpanAnnual}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${ann}</td>
+        <td colspan="${colSpanMax}" style="padding:${cellPad};border:1px solid #000;"></td>
+        ${spanCell(t1, colSpanTerm)}
+        ${spanCell(t2, colSpanTerm)}
+        ${spanCell(t3, colSpanTerm)}
+        ${spanCell(ann, colSpanAnnual)}
       </tr>`
     : `<tr>
         ${td(label, { align: "left", bold: true })}
-        <td colspan="${colSpanMax}" style="padding:5px 4px;border:1px solid #000;"></td>
-        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t1}</td>
+        <td colspan="${colSpanMax}" style="padding:${cellPad};border:1px solid #000;"></td>
+        ${spanCell(t1, colSpanTerm)}
       </tr>`;
 
+  const thPad = "4px 3px";
+  const thSubPad = "2px 2px";
   const tableHead = fullYear
     ? `<tr>
-        <th rowspan="2" style="padding:6px 4px;border:1px solid #000;font-size:9px;text-align:left;">SUBJECT</th>
-        <th colspan="3" style="padding:6px 4px;border:1px solid #000;font-size:9px;">MAXIMUM</th>
-        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Term 1</th>
-        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Term 2</th>
-        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Term 3</th>
-        <th colspan="4" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Annual Total</th>
+        <th rowspan="2" style="padding:${thPad};border:1px solid #000;font-size:8px;text-align:left;">SUBJECT</th>
+        <th colspan="3" style="padding:${thPad};border:1px solid #000;font-size:8px;">MAXIMUM</th>
+        <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">Term 1</th>
+        <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">Term 2</th>
+        <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">Term 3</th>
+        <th colspan="4" style="padding:${thPad};border:1px solid #000;font-size:8px;">Annual Total</th>
       </tr>
       <tr>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">MAX</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">MAX</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
       </tr>`
     : `<tr>
-        <th rowspan="2" style="padding:6px 4px;border:1px solid #000;font-size:9px;text-align:left;">SUBJECT</th>
-        <th colspan="3" style="padding:6px 4px;border:1px solid #000;font-size:9px;">MAXIMUM</th>
-        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">${termLabel}</th>
+        <th rowspan="2" style="padding:${thPad};border:1px solid #000;font-size:8px;text-align:left;">SUBJECT</th>
+        <th colspan="3" style="padding:${thPad};border:1px solid #000;font-size:8px;">MAXIMUM</th>
+        <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">${termLabel}</th>
       </tr>
       <tr>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
-        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
       </tr>`;
 
   const gradingScaleRows = `
     <tr>
-      <td style="padding:4px 6px;border:1px solid #000;font-size:8px;font-weight:700;">Final Grade</td>
-      ${gradingScale.map((g) => `<td style="padding:4px 6px;border:1px solid #000;font-size:8px;text-align:center;">${g.range}</td>`).join("")}
+      <td style="padding:3px 5px;border:1px solid #000;font-size:7.5px;font-weight:700;">Final Grade</td>
+      ${gradingScale.map((g) => `<td style="padding:3px 5px;border:1px solid #000;font-size:7.5px;text-align:center;">${g.range}</td>`).join("")}
     </tr>
     <tr>
-      <td style="padding:4px 6px;border:1px solid #000;font-size:8px;font-weight:700;">Letter Grade</td>
-      ${gradingScale.map((g) => `<td style="padding:4px 6px;border:1px solid #000;font-size:8px;text-align:center;font-weight:700;">${g.grade}</td>`).join("")}
+      <td style="padding:3px 5px;border:1px solid #000;font-size:7.5px;font-weight:700;">Letter Grade</td>
+      ${gradingScale.map((g) => `<td style="padding:3px 5px;border:1px solid #000;font-size:7.5px;text-align:center;font-weight:700;">${g.grade}</td>`).join("")}
     </tr>
     <tr>
-      <td style="padding:4px 6px;border:1px solid #000;font-size:8px;font-weight:700;">Grade Value</td>
-      ${gradingScale.map((g) => `<td style="padding:4px 6px;border:1px solid #000;font-size:8px;text-align:center;">${g.points}</td>`).join("")}
+      <td style="padding:3px 5px;border:1px solid #000;font-size:7.5px;font-weight:700;">Grade Value</td>
+      ${gradingScale.map((g) => `<td style="padding:3px 5px;border:1px solid #000;font-size:7.5px;text-align:center;">${g.points}</td>`).join("")}
     </tr>`;
 
   const abbrText = abbreviations.map((a) => `${a.term}: ${a.description}`).join(" · ");
+
+  const classTeacherSigImg = student.classTeacherSignature
+    ? `<img src="${student.classTeacherSignature}" alt="Class teacher signature" style="max-height:36px;max-width:140px;object-fit:contain;display:block;margin:4px 0 2px;"/>`
+    : `<div style="height:36px;"></div>`;
+  const headteacherSigImg = student.headteacherSignature
+    ? `<img src="${student.headteacherSignature}" alt="Head teacher signature" style="max-height:44px;max-width:160px;object-fit:contain;display:block;margin:8px 0 4px;"/>`
+    : `<div style="height:44px;margin:8px 0 4px;"></div>`;
+
+  const halfCols = Math.ceil((1 + totalDataCols) / 2);
+  const otherHalf = Math.floor((1 + totalDataCols) / 2);
 
   return `
 <div class="report-card" style="
@@ -865,12 +903,12 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
   display:flex;
   flex-direction:column;
 ">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px 10px;border-bottom:1px solid #000;">
-    <div style="display:flex;gap:10px;align-items:flex-start;flex:1;">
-      <img src="${logoSrc}" alt="School Logo" style="width:72px;height:72px;object-fit:contain;border:1px solid #000;padding:3px;background:#fff;"/>
-      <div style="font-size:10px;line-height:1.45;">
-        <div style="font-weight:900;letter-spacing:0.4px;">${student.republic}</div>
-        <div style="font-weight:700;">${student.ministry}</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 16px 14px;border-bottom:2px solid #000;">
+    <div style="display:flex;gap:12px;align-items:flex-start;flex:1.1;">
+      <img src="${logoSrc}" alt="School Logo" style="width:88px;height:88px;object-fit:contain;border:1px solid #000;padding:4px;background:#fff;"/>
+      <div style="font-size:11.5px;line-height:1.5;">
+        <div style="font-weight:900;letter-spacing:0.5px;font-size:13px;">${student.republic}</div>
+        <div style="font-weight:700;font-size:12px;">${student.ministry}</div>
         <div>DISTRICT: ${student.district}</div>
         <div>School: ${student.school}</div>
         <div>School Code: ${student.schoolCode}</div>
@@ -879,14 +917,14 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
       </div>
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;">
-      <div style="border:2px solid #000;padding:14px 18px;text-align:center;font-weight:900;font-size:13px;letter-spacing:0.5px;text-transform:uppercase;">
+      <div style="border:2.5px solid #000;padding:18px 20px;text-align:center;font-weight:900;font-size:15px;letter-spacing:0.6px;text-transform:uppercase;min-width:220px;">
         STUDENT REPORT CARD: ${levelTitle}
-        <div style="font-size:10px;font-weight:700;margin-top:6px;text-transform:none;">${termLabel}</div>
+        <div style="font-size:11px;font-weight:700;margin-top:8px;text-transform:none;">${termLabel}</div>
       </div>
     </div>
   </div>
 
-  <div style="margin:10px 12px;border:1.5px solid #000;padding:10px 12px;font-size:10px;">
+  <div style="margin:8px 12px;border:1.5px solid #000;padding:8px 12px;font-size:10px;">
     <div style="display:flex;justify-content:space-between;gap:12px;">
       <div>
         <div><strong>Names:</strong> ${student.studentNames}</div>
@@ -900,13 +938,13 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
     </div>
   </div>
 
-  <div style="padding:0 12px 12px;flex:1;display:flex;flex-direction:column;">
-    <table style="width:100%;border-collapse:collapse;border:1px solid #000;flex:1;">
+  <div style="padding:0 12px 8px;flex:1;display:flex;flex-direction:column;">
+    <table style="width:100%;border-collapse:collapse;border:1px solid #000;">
       <thead>${tableHead}</thead>
       <tbody>
         ${weightRow}
         ${conductRow}
-        <tr><td colspan="${1 + totalDataCols}" style="padding:5px 6px;border:1px solid #000;font-size:9px;font-weight:700;background:#f3f3f3;">All Subjects</td></tr>
+        <tr><td colspan="${1 + totalDataCols}" style="padding:3px 6px;border:1px solid #000;font-size:8px;font-weight:700;background:#f3f3f3;">All Subjects</td></tr>
         ${subjectRows}
         ${totalRow}
         ${spanTermSummary(
@@ -931,42 +969,46 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
           student.summary.annual.position
         )}
         <tr>
-          <td colspan="${1 + totalDataCols}" style="padding:12px 10px;border:1px solid #000;font-size:9px;vertical-align:top;height:72px;">
+          <td colspan="${1 + totalDataCols}" style="padding:6px 8px;border:1px solid #000;font-size:8px;vertical-align:top;min-height:40px;">
             <strong>Comment:</strong><br/>
             Class Teacher: ${student.classTeacherComment || ""}<br/>
             Headteacher: ${student.headteacherComment || ""}
           </td>
         </tr>
         <tr>
-          <td colspan="${Math.ceil((1 + totalDataCols) / 2)}" style="padding:16px 10px;border:1px solid #000;font-size:9px;height:64px;vertical-align:bottom;">
-            Class Teacher's Signature<br/><span style="font-size:8px;">${student.classTeacher || ""}</span>
+          <td colspan="${halfCols}" style="padding:6px 8px;border:1px solid #000;font-size:8px;vertical-align:bottom;">
+            Class Teacher's Signature
+            ${classTeacherSigImg}
+            <span style="font-size:7.5px;">${student.classTeacher || ""}</span>
           </td>
-          <td colspan="${Math.floor((1 + totalDataCols) / 2)}" style="padding:16px 10px;border:1px solid #000;font-size:9px;height:64px;vertical-align:bottom;">
+          <td colspan="${otherHalf}" style="padding:6px 8px;border:1px solid #000;font-size:8px;vertical-align:bottom;">
             Parent's Signature
+            <div style="height:36px;"></div>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <div style="display:flex;gap:10px;padding:0 12px 14px;align-items:stretch;margin-top:auto;">
+  <div style="display:flex;gap:8px;padding:0 12px 12px;align-items:stretch;margin-top:auto;">
     <div style="flex:1.2;">
       <table style="width:100%;border-collapse:collapse;border:1px solid #000;">${gradingScaleRows}</table>
-      <div style="margin-top:8px;border:1px solid #000;padding:10px;font-size:9px;">
+      <div style="margin-top:6px;border:1px solid #000;padding:6px 8px;font-size:8px;">
         <div><strong>Final Decision:</strong> ${student.finalDecision}</div>
-        <div style="margin-top:6px;"><strong>Abbreviations:</strong> ${abbrText}</div>
+        <div style="margin-top:4px;"><strong>Abbreviations:</strong> ${abbrText}</div>
       </div>
     </div>
-    <div style="flex:1;border:1px solid #000;padding:12px;font-size:9px;display:flex;flex-direction:column;justify-content:space-between;min-height:120px;">
+    <div style="flex:1;border:1px solid #000;padding:8px 10px;font-size:8px;display:flex;flex-direction:column;justify-content:space-between;min-height:100px;">
       <div>
         <div style="font-weight:700;">Headteacher</div>
         <div>${student.headteacher || ""}</div>
       </div>
-      <div style="margin-top:28px;border-top:1px solid #000;padding-top:6px;">Signature</div>
+      ${headteacherSigImg}
+      <div style="border-top:1px solid #000;padding-top:4px;">Signature</div>
     </div>
-    <div style="width:100px;border:1px solid #000;padding:8px;text-align:center;">
-      <img src="${qrBase64}" alt="QR" style="width:78px;height:78px;image-rendering:pixelated;"/>
-      <div style="font-size:7px;margin-top:6px;">Generated by UBRS</div>
+    <div style="width:130px;border:1px solid #000;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <img src="${barcodeBase64}" alt="Barcode" style="width:100%;max-height:58px;object-fit:contain;"/>
+      <div style="font-size:6.5px;margin-top:4px;">Generated by UBRS</div>
     </div>
   </div>
 </div>`;

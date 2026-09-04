@@ -1,42 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
+import { headerTeacherDashboardService, MarksSubmissionTrends } from "../../services/headerTeacherDashboardService";
 
-// ------------------------------------------------------------------
-// Demo data keyed by academicYear
-// Each value has 3 data points → one per term (Term 1, Term 2, Term 3)
-// In production these would come from an API call.
-// ------------------------------------------------------------------
 type TrendData = {
-  approved: number[];  // [T1, T2, T3]
+  approved: number[];
   submitted: number[];
   pending: number[];
   rejected: number[];
 };
-
-const TREND_DATA: Record<string, TrendData> = {
-  "2023-2024": {
-    approved:  [12, 15, 18],
-    submitted: [14, 17, 20],
-    pending:   [22, 14,  8],
-    rejected:  [ 2,  3,  2],
-  },
-  "2024-2025": {
-    approved:  [10, 14, 19],
-    submitted: [13, 16, 21],
-    pending:   [24, 16,  9],
-    rejected:  [ 1,  2,  3],
-  },
-  "2025-2026": {
-    approved:  [ 8, 11,  0],
-    submitted: [10, 13,  0],
-    pending:   [26, 19,  0],
-    rejected:  [ 2,  2,  0],
-  },
-};
-
-const ACADEMIC_YEARS = Object.keys(TREND_DATA).sort((a, b) => b.localeCompare(a));
-const TERMS = ["Term 1", "Term 2", "Term 3"];
 
 // Tiny styled <select> wrapper
 function FilterSelect({
@@ -71,24 +43,54 @@ function FilterSelect({
 }
 
 export default function StatisticsChart() {
-  const [academicYear, setAcademicYear] = useState(ACADEMIC_YEARS[0]);
+  const [data, setData] = useState<MarksSubmissionTrends | null>(null);
+  const [academicYear, setAcademicYear] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const data: TrendData = useMemo(() => {
-    return (
-      TREND_DATA[academicYear] ?? {
-        approved:  [0, 0, 0],
-        submitted: [0, 0, 0],
-        pending:   [0, 0, 0],
-        rejected:  [0, 0, 0],
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await headerTeacherDashboardService.getMarksSubmissionTrends();
+        setData(result);
+        if (result.academicYears.length > 0) {
+          setAcademicYear(result.academicYears[0]);
+        }
+      } catch (e) {
+        console.error(e);
+        setError(e instanceof Error ? e.message : "Failed to load marks trends");
+        setData(null);
+      } finally {
+        setLoading(false);
       }
-    );
-  }, [academicYear]);
+    };
+    void load();
+  }, []);
+
+  const trendData: TrendData = useMemo(() => {
+    if (!data || !academicYear) {
+      return {
+        approved: [0, 0, 0],
+        submitted: [0, 0, 0],
+        pending: [0, 0, 0],
+        rejected: [0, 0, 0],
+      };
+    }
+    return data.trendsByYear[academicYear] || {
+      approved: [0, 0, 0],
+      submitted: [0, 0, 0],
+      pending: [0, 0, 0],
+      rejected: [0, 0, 0],
+    };
+  }, [data, academicYear]);
 
   const series = [
-    { name: "Approved",  data: data.approved },
-    { name: "Submitted", data: data.submitted },
-    { name: "Pending",   data: data.pending },
-    { name: "Rejected",  data: data.rejected },
+    { name: "Approved",  data: trendData.approved },
+    { name: "Submitted", data: trendData.submitted },
+    { name: "Pending",   data: trendData.pending },
+    { name: "Rejected",  data: trendData.rejected },
   ];
 
   const options: ApexOptions = {
@@ -134,7 +136,7 @@ export default function StatisticsChart() {
     },
     xaxis: {
       type: "category",
-      categories: TERMS,
+      categories: data?.terms || ["Term 1", "Term 2", "Term 3"],
       axisBorder: { show: false },
       axisTicks: { show: false },
       tooltip: { enabled: false },
@@ -169,7 +171,7 @@ export default function StatisticsChart() {
           <FilterSelect
             label="Academic Year"
             value={academicYear}
-            options={ACADEMIC_YEARS}
+            options={data?.academicYears || []}
             onChange={setAcademicYear}
           />
         </div>
@@ -177,9 +179,19 @@ export default function StatisticsChart() {
 
       {/* ── Chart ── */}
       <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="min-w-[400px] xl:min-w-full">
-          <Chart options={options} series={series} type="area" height={310} />
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-[310px]">
+            <div className="text-gray-500">Loading...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-[310px]">
+            <div className="text-red-500 text-sm">{error}</div>
+          </div>
+        ) : (
+          <div className="min-w-[400px] xl:min-w-full">
+            <Chart options={options} series={series} type="area" height={310} />
+          </div>
+        )}
       </div>
     </div>
   );

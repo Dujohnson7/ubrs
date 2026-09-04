@@ -20,6 +20,7 @@ import {
 import { studentReportService } from "../../services/studentReportService";
 import { schoolClassService } from "../../services/schoolClassService";
 import { academicYearService } from "../../services/academicYearService";
+import { loadReportSignatories } from "./reportSignatures";
 
 const gradeColor = (pct: number) => {
   if (pct >= 80) return { bg: "#dcfce7", text: "#16a34a" };
@@ -124,6 +125,7 @@ export default function ClassStudentReports() {
             level: schoolClass.classLevel,
             classLevel: schoolClass.classLevel,
             classTeacher: schoolClass.classTeacherName || "—",
+            classTeacherId: schoolClass.classTeacherId,
             studentCount: 0,
             academicYear: "",
             term,
@@ -142,6 +144,17 @@ export default function ClassStudentReports() {
           };
         }
 
+        setClassData(info);
+
+        const signatories = await loadReportSignatories(classId, info.classTeacher);
+        info = {
+          ...info,
+          classTeacherId: signatories.classTeacherId,
+          classTeacher: signatories.classTeacher || info.classTeacher,
+          classTeacherSignature: signatories.classTeacherSignature,
+          headteacher: signatories.headteacher,
+          headteacherSignature: signatories.headteacherSignature,
+        };
         setClassData(info);
 
         const rows = await studentReportService.getStudentGradeReport(academicYearId, classId);

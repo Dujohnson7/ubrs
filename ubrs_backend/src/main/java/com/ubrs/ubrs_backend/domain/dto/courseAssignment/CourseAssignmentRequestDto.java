@@ -1,4 +1,4 @@
-package com.ubrs.ubrs_backend.domain.dto.classAssignment;
+package com.ubrs.ubrs_backend.domain.dto.courseAssignment;
 
 import com.ubrs.ubrs_backend.util.EAssignmentState;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class ClassAssignmentRequestDto {
+public class CourseAssignmentRequestDto {
 
     private UUID teacherId;
 
@@ -20,6 +20,5 @@ public class ClassAssignmentRequestDto {
     private EAssignmentState assignmentStatus;
 
     private LocalDate assignmentDate;
-
-    private LocalDate closedDate;
+ 
 }

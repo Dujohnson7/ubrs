@@ -3,10 +3,11 @@ package com.ubrs.ubrs_backend.domain.dto.users;
 import com.ubrs.ubrs_backend.util.ERole;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 @Setter
 @Getter
-public class UsersRequest {
+public class UsersRequestDto {
 
     private String profile;
 
@@ -25,4 +26,6 @@ public class UsersRequest {
     private boolean userStatus;
 
     private boolean isFirstTime;
+
+    private MultipartFile profileFile;
 }

@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class SchoolClassRequest {
+public class SchoolClassRequestDto {
 
     private String name;
 

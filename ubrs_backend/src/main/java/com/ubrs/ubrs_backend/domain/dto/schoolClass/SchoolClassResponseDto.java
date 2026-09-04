@@ -8,9 +8,9 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class SchoolClassResponse {
+public class SchoolClassResponseDto {
 
-    private UUID id;
+    private UUID schoolClassId;
 
     private String name;
 

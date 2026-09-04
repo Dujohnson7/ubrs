@@ -1,6 +1,6 @@
 package com.ubrs.ubrs_backend.util;
 
-public enum ECourseLevel {
+public enum ESchoolLevel  {
     NURSERY,
     PRIMARY,
 }

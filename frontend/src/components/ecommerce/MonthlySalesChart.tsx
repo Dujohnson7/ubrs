@@ -3,56 +3,14 @@ import { ApexOptions } from "apexcharts";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
-import { useState, useMemo } from "react";
-
-// ------------------------------------------------------------------
-// Demo data: average marks per subject, grouped by school level.
-// Each "level" row in the chart = one bar series.
-// In production these would come from an API call.
-// ------------------------------------------------------------------
-const ALL_SUBJECTS = [
-  "Math",
-  "English",
-  "Kinyarwanda",
-  "Science",
-  "Social Studies",
-  "Rel. Ed.",
-  "Arts",
-  "PE",
-];
+import { useState, useMemo, useEffect } from "react";
+import { headerTeacherDashboardService, AverageMarksBySubject } from "../../services/headerTeacherDashboardService";
 
 type LevelKey = "all" | "nursery" | "primary";
 
 type LevelSeries = {
   name: string;
   data: number[];
-};
-
-// Average marks per subject across all classes in that level
-const LEVEL_DATA: Record<LevelKey, LevelSeries[]> = {
-  // "All" = side-by-side bars for Nursery + Primary so you can compare both at once
-  all: [
-    {
-      name: "Nursery",
-      data: [74, 70, 75, 71, 68, 73, 79, 85],
-    },
-    {
-      name: "Primary",
-      data: [82, 76, 72, 83, 69, 77, 66, 87],
-    },
-  ],
-  nursery: [
-    {
-      name: "Nursery",
-      data: [74, 70, 75, 71, 68, 73, 79, 85],
-    },
-  ],
-  primary: [
-    {
-      name: "Primary",
-      data: [82, 76, 72, 83, 69, 77, 66, 87],
-    },
-  ],
 };
 
 const LEVELS: { key: LevelKey; label: string }[] = [
@@ -64,8 +22,49 @@ const LEVELS: { key: LevelKey; label: string }[] = [
 export default function MonthlySalesChart() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeLevel, setActiveLevel] = useState<LevelKey>("all");
+  const [data, setData] = useState<AverageMarksBySubject | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const activeSeries = useMemo(() => LEVEL_DATA[activeLevel], [activeLevel]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await headerTeacherDashboardService.getAverageMarksBySubject();
+        setData(result);
+      } catch (e) {
+        console.error(e);
+        setError(e instanceof Error ? e.message : "Failed to load average marks");
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, []);
+
+  const activeSeries = useMemo(() => {
+    if (!data) return [];
+
+    const nurserySeries: LevelSeries = {
+      name: data.nursery.name,
+      data: data.nursery.averageMarks,
+    };
+
+    const primarySeries: LevelSeries = {
+      name: data.primary.name,
+      data: data.primary.averageMarks,
+    };
+
+    if (activeLevel === "all") {
+      return [nurserySeries, primarySeries];
+    } else if (activeLevel === "nursery") {
+      return [nurserySeries];
+    } else {
+      return [primarySeries];
+    }
+  }, [data, activeLevel]);
 
   const options: ApexOptions = {
     colors: ["#a78bfa", "#465fff"],
@@ -87,7 +86,7 @@ export default function MonthlySalesChart() {
     dataLabels: { enabled: false },
     stroke: { show: true, width: 2, colors: ["transparent"] },
     xaxis: {
-      categories: ALL_SUBJECTS,
+      categories: data?.subjects || [],
       axisBorder: { show: false },
       axisTicks: { show: false },
       labels: {
@@ -127,7 +126,7 @@ export default function MonthlySalesChart() {
             Average Marks by Subject
           </h3>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Term 1 · 2025–2026 · Score out of 100
+            {data ? `${data.term} · ${data.academicYear} · Score out of 100` : 'Loading...'}
           </p>
         </div>
 
@@ -174,9 +173,19 @@ export default function MonthlySalesChart() {
 
       {/* ── Chart ── */}
       <div className="max-w-full overflow-x-auto custom-scrollbar mt-2 flex-1">
-        <div className="-ml-5 min-w-[550px] xl:min-w-full pl-2 h-full">
-          <Chart options={options} series={activeSeries} type="bar" height={280} />
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-[280px]">
+            <div className="text-gray-500">Loading...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-[280px]">
+            <div className="text-red-500 text-sm">{error}</div>
+          </div>
+        ) : (
+          <div className="-ml-5 min-w-[550px] xl:min-w-full pl-2 h-full">
+            <Chart options={options} series={activeSeries} type="bar" height={280} />
+          </div>
+        )}
       </div>
     </div>
   );
