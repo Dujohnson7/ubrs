@@ -3,6 +3,7 @@ import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import ForgotPassword from "./pages/AuthPages/ForgotPassword";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
+import VerifyOtp from "./pages/AuthPages/VerifyOtp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
 import Users from "./pages/users/Users";
@@ -27,18 +28,7 @@ import Grades from "./pages/grade/Grades";
 import GradesCreate from "./pages/grade/GradesCreate";
 import GradesEdit from "./pages/grade/GradesEdit";
 import GradeDetails from "./pages/grade/GradeDetails";
-import Videos from "./pages/UiElements/Videos";
-import Images from "./pages/UiElements/Images";
-import Alerts from "./pages/UiElements/Alerts";
-import Badges from "./pages/UiElements/Badges";
-import Avatars from "./pages/UiElements/Avatars";
-import Buttons from "./pages/UiElements/Buttons";
-import LineChart from "./pages/Charts/LineChart";
-import BarChart from "./pages/Charts/BarChart";
 import Calendar from "./pages/Calendar";
-import BasicTables from "./pages/Tables/BasicTables";
-import FormElements from "./pages/Forms/FormElements";
-import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
@@ -48,19 +38,22 @@ import MarksApproval from "./pages/report/MarksApproval";
 import ClassSubjectsApproval from "./pages/report/ClassSubjectsApproval";
 import SubjectMarksApproval from "./pages/report/SubjectMarksApproval";
 import SchoolReports from "./pages/report/SchoolReports";
+import { AuthProvider } from "./context/AuthContext";
+import ToastContainer from "./components/common/ToastContainer";
 
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <Router>
         <ScrollToTop />
+        <ToastContainer />
         <Routes>
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
             <Route index path="/" element={<Home />} />
 
-            {/* Others Page */}
+            {/* UBRS Page */}
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/users" element={<Users />} />
             <Route path="/users/create" element={<UsersCreate />} />
@@ -87,41 +80,23 @@ export default function App() {
             <Route path="/student-reports" element={<StudentReports />} />
             <Route path="/student-reports/:classId" element={<ClassStudentReports />} />
             <Route path="/marks-approval" element={<MarksApproval />} />
-            <Route path="/marks-approval/:classId" element={<ClassSubjectsApproval />} />
-            <Route path="/marks-approval/:classId/:subjectId" element={<SubjectMarksApproval />} />
+            <Route path="/marks-approval/details" element={<ClassSubjectsApproval />} />
+            <Route path="/marks-approval/details/studentGrade" element={<SubjectMarksApproval />} />
             <Route path="/school-report" element={<SchoolReports />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/blank" element={<Blank />} />
-
-            {/* Forms */}
-            <Route path="/form-elements" element={<FormElements />} />
-
-            {/* Tables */}
-            <Route path="/basic-tables" element={<BasicTables />} />
-
-            {/* Ui Elements */}
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/avatars" element={<Avatars />} />
-            <Route path="/badge" element={<Badges />} />
-            <Route path="/buttons" element={<Buttons />} />
-            <Route path="/images" element={<Images />} />
-            <Route path="/videos" element={<Videos />} />
-
-            {/* Charts */}
-            <Route path="/line-chart" element={<LineChart />} />
-            <Route path="/bar-chart" element={<BarChart />} />
+            <Route path="/calendar" element={<Calendar />} /> 
           </Route>
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
-    </>
+    </AuthProvider>
   );
 }

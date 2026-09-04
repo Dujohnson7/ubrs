@@ -1,56 +1,130 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import { courseAssignmentService, CourseAssignmentResponseDto, EAssignmentState } from "../../services/courseAssignmentService";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import DatePicker from "../../components/form/date-picker";
-import { PencilIcon, TrashBinIcon, CloseIcon, CopyIcon } from "../../icons";
-
-const sampleAssignments = [
-  {
-    id: "1",
-    assignmentId: "ASG1001",
-    studentName: "John Doe",
-    className: "Blue House",
-    courseName: "Mathematics",
-    assignedDate: "2025-03-10",
-    dueDate: "2025-03-20",
-    status: "Open",
-  },
-];
+import { PencilIcon, TrashBinIcon, CloseIcon } from "../../icons";
+import { toast } from "../../utils/toast";
 
 export default function Assignments() {
-  const [assignments, setAssignments] = useState(sampleAssignments);
+  const [assignments, setAssignments] = useState<CourseAssignmentResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [teacherFilter, setTeacherFilter] = useState("All Teachers");
-  const [classFilter, setClassFilter] = useState("All Classes");
-  const [courseFilter, setCourseFilter] = useState("All Courses");
-  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [teacherFilter, setTeacherFilter] = useState("ALL");
+  const [classFilter, setClassFilter] = useState("ALL");
+  const [courseFilter, setCourseFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | EAssignmentState>("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<string | null>(null);
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [assignmentToClose, setAssignmentToClose] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    setAssignments((current) => current.filter((item) => item.id !== id));
+  useEffect(() => {
+    const loadAssignments = async () => {
+      try {
+        setLoading(true);
+        const data = await courseAssignmentService.getAllCourseAssignments();
+        setAssignments(data);
+      } catch (err) {
+        // Error is handled by toast in service
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAssignments();
+  }, []);
+
+  const handleDelete = (courseAssignmentId: string) => {
+    setAssignmentToDelete(courseAssignmentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!assignmentToDelete) return;
+
+    try {
+      await courseAssignmentService.deleteCourseAssignment(assignmentToDelete);
+      setAssignments((current) => current.filter((item) => item.courseAssignmentId !== assignmentToDelete));
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setDeleteDialogOpen(false);
+      setAssignmentToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setAssignmentToDelete(null);
+  };
+
+  const handleCloseAssignment = (courseAssignmentId: string) => {
+    setAssignmentToClose(courseAssignmentId);
+    setCloseDialogOpen(true);
+  };
+
+  const confirmCloseAssignment = async () => {
+    if (!assignmentToClose) return;
+
+    try {
+      await courseAssignmentService.closeCourseAssignment(assignmentToClose);
+      setAssignments((current) => current.map((item) =>
+        item.courseAssignmentId === assignmentToClose
+          ? { ...item, assignmentStatus: EAssignmentState.CLOSED }
+          : item
+      ));
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setCloseDialogOpen(false);
+      setAssignmentToClose(null);
+    }
+  };
+
+  const cancelCloseAssignment = () => {
+    setCloseDialogOpen(false);
+    setAssignmentToClose(null);
   };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return assignments.filter((a) => {
-      if (teacherFilter !== "All Teachers" && a.className !== teacherFilter) return false; // placeholder: teacher filter
-      if (classFilter !== "All Classes" && a.className !== classFilter) return false;
-      if (courseFilter !== "All Courses" && a.courseName !== courseFilter) return false;
-      if (statusFilter !== "All Status" && a.status !== statusFilter) return false;
-      if (fromDate && new Date(a.assignedDate) < new Date(fromDate)) return false;
-      if (toDate && new Date(a.assignedDate) > new Date(toDate)) return false;
+      if (teacherFilter !== "ALL" && a.teacherName !== teacherFilter) return false;
+      if (classFilter !== "ALL" && a.schoolClassName !== classFilter) return false;
+      if (courseFilter !== "ALL" && a.courseName !== courseFilter) return false;
+      if (statusFilter !== "ALL" && a.assignmentStatus !== statusFilter) return false;
+      if (fromDate && new Date(a.assignmentDate) < new Date(fromDate)) return false;
+      if (toDate && new Date(a.assignmentDate) > new Date(toDate)) return false;
       if (!q) return true;
-      return [a.assignmentId, a.studentName, a.className, a.courseName, a.status].join(" ").toLowerCase().includes(q);
+      return [a.teacherName, a.schoolClassName, a.courseName, a.assignmentStatus].join(" ").toLowerCase().includes(q);
     });
   }, [assignments, search, teacherFilter, classFilter, courseFilter, statusFilter, fromDate, toDate]);
+
+  const uniqueTeachers = useMemo(() => {
+    const teachers = new Set(assignments.map((a) => a.teacherName));
+    return Array.from(teachers).sort();
+  }, [assignments]);
+
+  const uniqueClasses = useMemo(() => {
+    const classes = new Set(assignments.map((a) => a.schoolClassName));
+    return Array.from(classes).sort();
+  }, [assignments]);
+
+  const uniqueCourses = useMemo(() => {
+    const courses = new Set(assignments.map((a) => a.courseName));
+    return Array.from(courses).sort();
+  }, [assignments]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -72,21 +146,28 @@ export default function Assignments() {
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Teacher</label>
                 <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={teacherFilter} onChange={(e) => { setTeacherFilter(e.target.value); setPage(1); }}>
-                  <option>All Teachers</option>
+                  <option value="ALL">All Teachers</option>
+                  {uniqueTeachers.map((teacher) => (
+                    <option key={teacher} value={teacher}>{teacher}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Class</label>
                 <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}>
-                  <option>All Classes</option>
-                  <option>Blue House</option>
+                  <option value="ALL">All Classes</option>
+                  {uniqueClasses.map((cls) => (
+                    <option key={cls} value={cls}>{cls}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Course</label>
                 <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={courseFilter} onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }}>
-                  <option>All Courses</option>
-                  <option>Mathematics</option>
+                  <option value="ALL">All Courses</option>
+                  {uniqueCourses.map((course) => (
+                    <option key={course} value={course}>{course}</option>
+                  ))}
                 </select>
               </div>
               <div className="flex justify-end">
@@ -98,11 +179,10 @@ export default function Assignments() {
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr] items-end">
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Status</label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-                  <option>All Status</option>
-                  <option>Open</option>
-                  <option>Completed</option>
-                  <option>Overdue</option>
+                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as "ALL" | EAssignmentState); setPage(1); }}>
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="CLOSED">Closed</option>
                 </select>
               </div>
               <div className="flex gap-3">
@@ -124,33 +204,38 @@ export default function Assignments() {
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">#</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Assignment ID</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Student</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Teacher</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Assigned Date</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Due Date</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Assignment Date</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Closed Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginated.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.id}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.assignmentId}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.studentName}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.className}</TableCell>
+                  {paginated.map((item, index) => (
+                    <TableRow key={item.courseAssignmentId}>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{(currentPage - 1) * pageSize + index + 1}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.teacherName}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.schoolClassName}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseName}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.assignedDate}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.dueDate}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.status}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.assignmentDate}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.closedDate || "-"}</TableCell>
+                      <TableCell className="px-5 py-4 text-start text-theme-sm dark:text-gray-400">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                          item.assignmentStatus === EAssignmentState.ACTIVE
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                        }`}>
+                          {item.assignmentStatus}
+                        </span>
+                      </TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("assignmentEditItem", JSON.stringify(item)); navigate("/assignments/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<CloseIcon className="size-4" />} onClick={() => console.log("Close", item.id)} title="Close Assignment" ariaLabel="Close Assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" />
-                          <Button size="sm" variant="outline" startIcon={<CopyIcon className="size-4" />} onClick={() => console.log("Re-assign", item.id)} title="Re-assignment" ariaLabel="Re-assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-info-100/20 !text-info-600 hover:!bg-info-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.id)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          <Button size="sm" variant="outline" startIcon={<CloseIcon className="size-4" />} onClick={() => handleCloseAssignment(item.courseAssignmentId)} disabled={item.assignmentStatus === EAssignmentState.CLOSED} title="Close Assignment" ariaLabel="Close Assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" />
+                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseAssignmentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -180,6 +265,25 @@ export default function Assignments() {
           </div>
         </ComponentCard>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        title="Delete Assignment"
+        message="Are you sure you want to delete this assignment? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        isOpen={closeDialogOpen}
+        title="Close Assignment"
+        message="Are you sure you want to close this assignment?"
+        onConfirm={confirmCloseAssignment}
+        onCancel={cancelCloseAssignment}
+        confirmText="Close"
+        cancelText="Cancel"
+      />
     </>
   );
 }

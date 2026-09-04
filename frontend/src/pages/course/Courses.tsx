@@ -1,37 +1,79 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import { courseService, CourseResponseDto, ESchoolLevel } from "../../services/courseService";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
 
-const sampleCourses = [
-  { id: "1", courseId: "CS101", courseName: "Mathematics", courseHour: 40, courseCode: "MATH01", courseLevel: "Primary" },
-  { id: "2", courseId: "CS102", courseName: "English", courseHour: 30, courseCode: "ENG01", courseLevel: "Nursery" },
-];
-
 export default function Courses() {
-  const [courses, setCourses] = useState(sampleCourses);
+  const [courses, setCourses] = useState<CourseResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [levelFilter, setLevelFilter] = useState("All Levels");
+  const [levelFilter, setLevelFilter] = useState<"ALL" | "PRIMARY" | "NURSERY">("ALL");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    setCourses((current) => current.filter((item) => item.id !== id));
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        setLoading(true);
+        let data;
+        if (levelFilter === "PRIMARY") {
+          data = await courseService.getPrimaryCourses();
+        } else if (levelFilter === "NURSERY") {
+          data = await courseService.getNurseryCourses();
+        } else {
+          data = await courseService.getAllCourses();
+        }
+        setCourses(data);
+      } catch (err) {
+        // Error is handled by toast in service
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCourses();
+  }, [levelFilter]);
+
+  const handleDelete = (courseId: string) => {
+    setCourseToDelete(courseId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!courseToDelete) return;
+
+    try {
+      await courseService.deleteCourse(courseToDelete);
+      setCourses((current) => current.filter((item) => item.courseId !== courseToDelete));
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setDeleteDialogOpen(false);
+      setCourseToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setCourseToDelete(null);
   };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return courses.filter((c) => {
-      if (levelFilter !== "All Levels" && c.courseLevel !== levelFilter) return false;
       if (!q) return true;
       return [c.courseId, c.courseName, c.courseCode, c.courseLevel].join(" ").toLowerCase().includes(q);
     });
-  }, [courses, search, levelFilter]);
+  }, [courses, search]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -51,10 +93,10 @@ export default function Courses() {
               </div>
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Level</label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={levelFilter} onChange={(e) => { setLevelFilter(e.target.value); setPage(1); }}>
-                  <option>All Levels</option>
-                  <option>Primary</option>
-                  <option>Nursery</option>
+                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={levelFilter} onChange={(e) => { setLevelFilter(e.target.value as "ALL" | "PRIMARY" | "NURSERY"); setPage(1); }}>
+                  <option value="ALL">All Levels</option>
+                  <option value="PRIMARY">Primary</option>
+                  <option value="NURSERY">Nursery</option>
                 </select>
               </div>
               <div className="flex justify-end">
@@ -71,27 +113,25 @@ export default function Courses() {
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">#</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course ID</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Hour</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Code</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Name</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Hours</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Level</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginated.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.id}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseId}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseName}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseHour}</TableCell>
+                  {paginated.map((item, index) => (
+                    <TableRow key={item.courseId}>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{(currentPage - 1) * pageSize + index + 1}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseCode}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseName}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseHours}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseLevel}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("courseEditItem", JSON.stringify(item)); navigate("/courses/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.id)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -121,6 +161,16 @@ export default function Courses() {
           </div>
         </ComponentCard>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        title="Delete Course"
+        message="Are you sure you want to delete this course? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </>
   );
 }

@@ -4,26 +4,47 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
+import { courseService, CourseRequestDto, ESchoolLevel } from "../../services/courseService";
+import { toast } from "../../utils/toast";
 
 export default function CoursesCreate() {
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [courseId, setCourseId] = useState("");
-  const [courseName, setCourseName] = useState("");
-  const [courseHour, setCourseHour] = useState("");
   const [courseCode, setCourseCode] = useState("");
-  const [courseLevel, setCourseLevel] = useState("Primary");
+  const [courseName, setCourseName] = useState("");
+  const [courseHours, setCourseHours] = useState(0);
+  const [courseLevel, setCourseLevel] = useState<ESchoolLevel>("PRIMARY");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!courseCode.trim() || !courseName.trim()) {
+      toast.error("Course code and name are required");
+      return;
+    }
+
+    if (courseHours <= 0) {
+      toast.error("Course hours must be greater than 0");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const courseData: CourseRequestDto = {
+        courseCode: courseCode.trim(),
+        courseName: courseName.trim(),
+        courseHours,
+        courseLevel,
+      };
+
+      await courseService.registerCourse(courseData);
       navigate("/courses");
-    }, 500);
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,8 +62,8 @@ export default function CoursesCreate() {
                 <Input value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="Enter course name" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Course Hour</label>
-                <Input type="number" value={courseHour} onChange={(e) => setCourseHour(e.target.value)} placeholder="Enter hour count" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Course Hours</label>
+                <Input type="number" value={courseHours} onChange={(e) => setCourseHours(Number(e.target.value))} placeholder="Enter hour count" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Course Code</label>
@@ -53,10 +74,10 @@ export default function CoursesCreate() {
                 <select
                   className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                   value={courseLevel}
-                  onChange={(e) => setCourseLevel(e.target.value)}
+                  onChange={(e) => setCourseLevel(e.target.value as ESchoolLevel)}
                 >
-                  <option value="Primary">Primary</option>
-                  <option value="Nursery">Nursery</option>
+                  <option value="PRIMARY">Primary</option>
+                  <option value="NURSERY">Nursery</option>
                 </select>
               </div>
             </div>

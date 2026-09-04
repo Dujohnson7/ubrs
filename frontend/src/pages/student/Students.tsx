@@ -1,42 +1,52 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import { studentService, StudentResponseDto, EGender, EStudentState } from "../../services/studentService";
+import { schoolClassService } from "../../services/schoolClassService";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
 import { Modal } from "../../components/ui/modal";
+import { toast } from "../../utils/toast";
 
-const sampleStudents = [
-  {
-    id: "1",
-    studentCode: "ST1001",
-    firstName: "John",
-    middleName: "Paul",
-    lastName: "Doe",
-    gender: "Male",
-    dob: "2016-03-12",
-    fatherName: "Edward Doe",
-    fatherPhone: "+250788111222",
-    motherName: "Mary Doe",
-    motherPhone: "+250788333444",
-    guardianName: "Edward Doe",
-    guardianPhone: "+250788111222",
-    studentStatus: "Active",
-    classId: "CL1001",
-  },
-];
-
-function StudentsUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const [file, setFile] = useState<File | null>(null);
-  const [className, setClassName] = useState("");
+  const [classId, setClassId] = useState("");
+  const [classes, setClasses] = useState<import("../../services/schoolClassService").SchoolClassResponseDto[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleUpload = () => {
-    console.log("Uploading students", { file, className });
-    onClose();
-    setFile(null);
-    setClassName("");
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        const data = await schoolClassService.getAllSchoolClasses();
+        setClasses(data);
+      } catch (err) {
+        // Error is handled by toast in service
+      }
+    };
+
+    loadClasses();
+  }, []);
+
+  const handleUpload = async () => {
+    if (!file || !classId) return;
+
+    setLoading(true);
+
+    try {
+      await studentService.importStudents(file, classId);
+      onSuccess();
+      onClose();
+      setFile(null);
+      setClassId("");
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setLoading(false);
+    } 
   };
 
   return (
@@ -57,49 +67,94 @@ function StudentsUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Class</label>
           <select
             className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            value={className}
-            onChange={(e) => setClassName(e.target.value)}
+            value={classId}
+            onChange={(e) => setClassId(e.target.value)}
           >
             <option value="">Select Class</option>
-            <option value="CL1001">Blue House (CL1001)</option>
-            <option value="CL1002">Red House (CL1002)</option>
-            <option value="CL1003">Green House (CL1003)</option>
+            {classes.map((cls) => (
+              <option key={cls.schoolClassId} value={cls.schoolClassId}>{cls.name}</option>
+            ))}
           </select>
         </div>
       </div>
       <div className="mt-8 flex justify-end gap-3">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleUpload} disabled={!file || !className}>Upload</Button>
+        <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button onClick={handleUpload} disabled={!file || !classId || loading}>{loading ? "Uploading..." : "Upload"}</Button>
       </div>
     </Modal>
   );
 }
 
 export default function Students() {
-  const [students, setStudents] = useState(sampleStudents);
+  const [students, setStudents] = useState<StudentResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState("All Classes");
-  const [statusFilter, setStatusFilter] = useState("All Status");
-  const [genderFilter, setGenderFilter] = useState("All Genders");
+  const [classFilter, setClassFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | EStudentState>("ALL");
+  const [genderFilter, setGenderFilter] = useState<"ALL" | EGender>("ALL");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    setStudents((current) => current.filter((item) => item.id !== id));
+  const fetchStudents = useCallback(async () => {
+    try {
+      setLoading(true);
+      let data;
+      if (classFilter === "PRIMARY") {
+        data = await studentService.getPrimaryStudents();
+      } else if (classFilter === "NURSERY") {
+        data = await studentService.getNurseryStudents();
+      } else {
+        data = await studentService.getAllStudents();
+      }
+      setStudents(data);
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setLoading(false);
+    }
+  }, [classFilter]);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
+
+  const handleDelete = (studentId: string) => {
+    setStudentToDelete(studentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+
+    try {
+      await studentService.deleteStudent(studentToDelete);
+      setStudents((current) => current.filter((item) => item.studentId !== studentToDelete));
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setStudentToDelete(null);
   };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return students.filter((s) => {
-      if (classFilter !== "All Classes" && s.classId !== classFilter) return false;
-      if (statusFilter !== "All Status" && s.studentStatus !== statusFilter) return false;
-      if (genderFilter !== "All Genders" && s.gender !== genderFilter) return false;
+      if (statusFilter !== "ALL" && s.studentStatus !== statusFilter) return false;
+      if (genderFilter !== "ALL" && s.gender !== genderFilter) return false;
       if (!q) return true;
-      return [s.studentCode, s.firstName, s.middleName, s.lastName, s.classId].join(" ").toLowerCase().includes(q);
+      return [s.studentCode, s.firstName, s.middleName, s.lastName, s.schoolClassName].join(" ").toLowerCase().includes(q);
     });
-  }, [students, search, classFilter, statusFilter, genderFilter]);
+  }, [students, search, statusFilter, genderFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -118,27 +173,29 @@ export default function Students() {
                 <Input placeholder="Search students..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
               </div>
               <div>
-                <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Class</label>
+                <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">School Level</label>
                 <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}>
-                  <option>All Classes</option>
-                  <option>CL1001</option>
+                  <option value="ALL">All Levels</option>
+                  <option value="PRIMARY">Primary</option>
+                  <option value="NURSERY">Nursery</option>
                 </select>
               </div>
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Status</label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-                  <option>All Status</option>
-                  <option>Active</option>
-                  <option>Fired</option>
-                  <option>Transfer</option>
+                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as "ALL" | EStudentState); setPage(1); }}>
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="GRADUATED">Graduated</option>
+                  <option value="SUSPENDED">Suspended</option>
                 </select>
               </div>
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Gender</label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={genderFilter} onChange={(e) => { setGenderFilter(e.target.value); setPage(1); }}>
-                  <option>All Genders</option>
-                  <option>Male</option>
-                  <option>Female</option>
+                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={genderFilter} onChange={(e) => { setGenderFilter(e.target.value as "ALL" | EGender); setPage(1); }}>
+                  <option value="ALL">All Genders</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
                 </select>
               </div>
               <div className="flex justify-end gap-2">
@@ -165,18 +222,18 @@ export default function Students() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginated.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.id}</TableCell>
+                  {paginated.map((item, index) => (
+                    <TableRow key={item.studentId}>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{(currentPage - 1) * pageSize + index + 1}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.studentCode}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.firstName} {item.middleName} {item.lastName}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.gender}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.studentStatus}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classId}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.schoolClassName || "-"}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("studentEditItem", JSON.stringify(item)); navigate("/students/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.id)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.studentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -207,7 +264,17 @@ export default function Students() {
         </ComponentCard>
       </div>
 
-      <StudentsUploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
+      <StudentsUploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onSuccess={fetchStudents} />
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        title="Delete Student"
+        message="Are you sure you want to delete this student? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </>
   );
 }

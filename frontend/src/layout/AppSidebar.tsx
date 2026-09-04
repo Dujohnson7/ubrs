@@ -55,13 +55,18 @@ const navItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Grades",
     path: "/grades",
+  }, 
+  {
+    icon: <PageIcon />,
+    name: "Marks Approval",
+    path: "/marks-approval",
   },  
   {
     icon: <TableIcon />,
     name: "Reports",
     subItems: [
       { name: "Student Reports", path: "/student-reports" },
-      { name: "Marks Approval", path: "/marks-approval", new: true },
+      //{ name: "Marks Approval", path: "/marks-approval" },
       { name: "School Report", path: "/school-report" },
     ],
   },
@@ -288,14 +293,14 @@ const AppSidebar: React.FC = () => {
                 className="dark:hidden"
                 src="/images/logo/logo.png"
                 alt="Logo"
-                width={150}
+                width={80}
                 height={20}
               />
               <img
                 className="hidden dark:block"
                 src="/images/logo/logo.png"
                 alt="Logo"
-                width={150}
+                width={80}
                 height={20}
               />
             </>
@@ -303,8 +308,8 @@ const AppSidebar: React.FC = () => {
             <img
               src="/images/logo/logo.png"
               alt="Logo"
-              width={32}
-              height={32}
+              width={80}
+              height={20}
             />
           )}
         </Link>

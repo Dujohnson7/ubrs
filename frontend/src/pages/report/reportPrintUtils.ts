@@ -1,164 +1,367 @@
-// ===================== TYPES =====================
+﻿// ===================== TYPES =====================
 
-export interface StudentMark {
+export interface SubjectMark {
   subject: string;
-  maxMarks: number;
-  cat1: number;
-  cat2: number;
-  exam: number;
-  total: number;
-  grade: string;
-  remarks: string;
+  maxEU: number;
+  maxET: number;
+  maxTOT: number;
+  term1: { eu: number; et: number; tot: number; percentage: number; grade: string };
+  term2: { eu: number; et: number; tot: number; percentage: number; grade: string };
+  term3: { eu: number; et: number; tot: number; percentage: number; grade: string };
+  annual: { eu: number; et: number; tot: number; percentage: number; grade: string };
 }
 
 export interface StudentReport {
-  id: string;
-  studentCode: string;
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  gender: "Male" | "Female";
-  dob: string;
-  fatherName: string;
-  motherName: string;
-  className: string;
-  classLevel: string;
-  classTeacher: string;
-  section: string;
-  rollNo: string;
-  admissionNo: string;
-  term: string;
+  // Header Information
+  republic: string;
+  ministry: string;
+  district: string;
+  school: string;
+  schoolCode: string;
+  email: string;
+  phone: string;
+
+  // Student Information
+  studentNames: string;
+  registrationId: string;
+
+  // Academic Information
   academicYear: string;
-  totalMarks: number;
-  totalOutOf: number;
-  percentage: number;
-  rank: number;
-  totalStudents: number;
-  marks: StudentMark[];
-  coScholastic: { activity: string; grade: string }[];
-  conductGrade: string;
-  attendanceDays: number;
-  totalDays: number;
-  principalComment: string;
-  teacherComment: string;
-  result: string;
-  nextTermBegins: string;
-  schoolName: string;
-  schoolAddress: string;
-  schoolPhone: string;
-  schoolEmail: string;
-  schoolWebsite: string;
-  schoolMotto: string;
-  affiliationNo: string;
+  level: string;
+  class: string;
+  /** TERM1/TERM2 = single-term card; TERM3 = full-year card (all terms + annual) */
+  reportTerm: "TERM1" | "TERM2" | "TERM3";
+
+  // Marks
+  conduct: { term1: number; term2: number; term3: number; annual: number };
+  subjects: SubjectMark[];
+
+  // Summary
+  summary: {
+    term1: { totalEU: number; totalET: number; totalTOT: number; percentage: number; grade: string; position: string };
+    term2: { totalEU: number; totalET: number; totalTOT: number; percentage: number; grade: string; position: string };
+    term3: { totalEU: number; totalET: number; totalTOT: number; percentage: number; grade: string; position: string };
+    annual: { totalEU: number; totalET: number; totalTOT: number; percentage: number; grade: string; position: string };
+  };
+
+  // Comments
+  classTeacherComment: string;
+  headteacherComment: string;
+
+  // Decision
+  finalDecision: string;
+
+  // Signatures
+  classTeacher: string;
+  headteacher: string;
+  headteacherSignature: string;
+
+  // Grading Scale
+  gradingScale: { grade: string; range: string; points: string }[];
+
+  // Abbreviations
+  abbreviations: { term: string; description: string }[];
 }
+
+export type ReportTerm = "TERM1" | "TERM2" | "TERM3";
 
 export interface ClassInfo {
   id: string;
   classId: string;
   name: string;
-  classLevel: string;
+  level: string;
+  classLevel?: string;
   classTeacher: string;
   studentCount: number;
-  term: string;
   academicYear: string;
+  academicYearId?: string;
+  term?: string;
 }
+
+export const normalizeReportTerm = (term?: string | null): ReportTerm => {
+  const t = (term || "TERM1").toUpperCase();
+  if (t === "TERM2") return "TERM2";
+  if (t === "TERM3") return "TERM3";
+  return "TERM1";
+};
+
+export const isFullYearReport = (term: ReportTerm) => term === "TERM3";
+
+export const getReportDisplaySummary = (student: StudentReport) => {
+  if (student.reportTerm === "TERM1") return student.summary.term1;
+  if (student.reportTerm === "TERM2") return student.summary.term2;
+  return student.summary.annual;
+};
+
+export const formatReportTermLabel = (term: ReportTerm) => {
+  if (term === "TERM1") return "Term 1";
+  if (term === "TERM2") return "Term 2";
+  return "Term 3 (Full Year)";
+};
 
 // ===================== SAMPLE DATA =====================
 
-const subjectSets: Record<string, StudentMark[]> = {
-  primary: [
-    { subject: "Mathematics", maxMarks: 100, cat1: 18, cat2: 17, exam: 58, total: 93, grade: "A1", remarks: "Excellent" },
-    { subject: "English Language", maxMarks: 100, cat1: 16, cat2: 15, exam: 52, total: 83, grade: "B2", remarks: "Very Good" },
-    { subject: "Kinyarwanda", maxMarks: 100, cat1: 19, cat2: 18, exam: 60, total: 97, grade: "A1", remarks: "Excellent" },
-    { subject: "Science & Technology", maxMarks: 100, cat1: 15, cat2: 14, exam: 48, total: 77, grade: "B3", remarks: "Good" },
-    { subject: "Social Studies", maxMarks: 100, cat1: 17, cat2: 16, exam: 55, total: 88, grade: "B2", remarks: "Very Good" },
-    { subject: "Religious Education", maxMarks: 100, cat1: 20, cat2: 20, exam: 58, total: 98, grade: "A1", remarks: "Outstanding" },
-    { subject: "Creative Arts", maxMarks: 100, cat1: 18, cat2: 17, exam: 50, total: 85, grade: "B2", remarks: "Very Good" },
-    { subject: "Physical Education", maxMarks: 100, cat1: 20, cat2: 20, exam: 55, total: 95, grade: "A1", remarks: "Excellent" },
-  ],
-  nursery: [
-    { subject: "Numbers & Counting", maxMarks: 100, cat1: 20, cat2: 19, exam: 55, total: 94, grade: "A1", remarks: "Excellent" },
-    { subject: "Alphabet & Reading", maxMarks: 100, cat1: 18, cat2: 17, exam: 50, total: 85, grade: "B2", remarks: "Very Good" },
-    { subject: "Colours & Shapes", maxMarks: 100, cat1: 20, cat2: 20, exam: 60, total: 100, grade: "A1", remarks: "Outstanding" },
-    { subject: "Creative Play", maxMarks: 100, cat1: 19, cat2: 18, exam: 58, total: 95, grade: "A1", remarks: "Excellent" },
-  ],
-};
+const ordinaryLevelSubjects: SubjectMark[] = [
+  {
+    subject: "Mathematics",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 33.0, et: 31.0, tot: 64.0, percentage: 53.33, grade: "C" },
+    term2: { eu: 35.0, et: 33.0, tot: 68.0, percentage: 56.67, grade: "C" },
+    term3: { eu: 37.0, et: 35.0, tot: 72.0, percentage: 60.00, grade: "B" },
+    annual: { eu: 105.0, et: 99.0, tot: 204.0, percentage: 56.67, grade: "C" }
+  },
+  {
+    subject: "English",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 45.0, et: 42.0, tot: 87.0, percentage: 72.50, grade: "B" },
+    term2: { eu: 47.0, et: 44.0, tot: 91.0, percentage: 75.83, grade: "B" },
+    term3: { eu: 48.0, et: 45.0, tot: 93.0, percentage: 77.50, grade: "B" },
+    annual: { eu: 140.0, et: 131.0, tot: 271.0, percentage: 75.28, grade: "B" }
+  },
+  {
+    subject: "Kinyarwanda",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 52.0, et: 50.0, tot: 102.0, percentage: 85.00, grade: "A" },
+    term2: { eu: 54.0, et: 52.0, tot: 106.0, percentage: 88.33, grade: "A" },
+    term3: { eu: 55.0, et: 53.0, tot: 108.0, percentage: 90.00, grade: "A" },
+    annual: { eu: 161.0, et: 155.0, tot: 316.0, percentage: 87.78, grade: "A" }
+  },
+  {
+    subject: "Biology and Health Sciences",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 38.0, et: 36.0, tot: 74.0, percentage: 61.67, grade: "B" },
+    term2: { eu: 40.0, et: 38.0, tot: 78.0, percentage: 65.00, grade: "B" },
+    term3: { eu: 42.0, et: 40.0, tot: 82.0, percentage: 68.33, grade: "B" },
+    annual: { eu: 120.0, et: 114.0, tot: 234.0, percentage: 65.00, grade: "B" }
+  },
+  {
+    subject: "Chemistry",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 35.0, et: 33.0, tot: 68.0, percentage: 56.67, grade: "C" },
+    term2: { eu: 37.0, et: 35.0, tot: 72.0, percentage: 60.00, grade: "B" },
+    term3: { eu: 39.0, et: 37.0, tot: 76.0, percentage: 63.33, grade: "B" },
+    annual: { eu: 111.0, et: 105.0, tot: 216.0, percentage: 60.00, grade: "B" }
+  },
+  {
+    subject: "Physics",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 36.0, et: 34.0, tot: 70.0, percentage: 58.33, grade: "C" },
+    term2: { eu: 38.0, et: 36.0, tot: 74.0, percentage: 61.67, grade: "B" },
+    term3: { eu: 40.0, et: 38.0, tot: 78.0, percentage: 65.00, grade: "B" },
+    annual: { eu: 114.0, et: 108.0, tot: 222.0, percentage: 61.67, grade: "B" }
+  },
+  {
+    subject: "French",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 41.0, et: 39.0, tot: 80.0, percentage: 66.67, grade: "B" },
+    term2: { eu: 43.0, et: 41.0, tot: 84.0, percentage: 70.00, grade: "B" },
+    term3: { eu: 45.0, et: 43.0, tot: 88.0, percentage: 73.33, grade: "B" },
+    annual: { eu: 129.0, et: 123.0, tot: 252.0, percentage: 70.00, grade: "B" }
+  },
+  {
+    subject: "Geography and Environment",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 44.0, et: 42.0, tot: 86.0, percentage: 71.67, grade: "B" },
+    term2: { eu: 46.0, et: 44.0, tot: 90.0, percentage: 75.00, grade: "B" },
+    term3: { eu: 48.0, et: 46.0, tot: 94.0, percentage: 78.33, grade: "B" },
+    annual: { eu: 138.0, et: 132.0, tot: 270.0, percentage: 75.00, grade: "B" }
+  },
+  {
+    subject: "Entrepreneurship",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 47.0, et: 45.0, tot: 92.0, percentage: 76.67, grade: "B" },
+    term2: { eu: 49.0, et: 47.0, tot: 96.0, percentage: 80.00, grade: "A" },
+    term3: { eu: 50.0, et: 48.0, tot: 98.0, percentage: 81.67, grade: "A" },
+    annual: { eu: 146.0, et: 140.0, tot: 286.0, percentage: 79.44, grade: "B" }
+  },
+  {
+    subject: "History and Citizenship",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 43.0, et: 41.0, tot: 84.0, percentage: 70.00, grade: "B" },
+    term2: { eu: 45.0, et: 43.0, tot: 88.0, percentage: 73.33, grade: "B" },
+    term3: { eu: 47.0, et: 45.0, tot: 92.0, percentage: 76.67, grade: "B" },
+    annual: { eu: 135.0, et: 129.0, tot: 264.0, percentage: 73.33, grade: "B" }
+  },
+  {
+    subject: "ICT",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 50.0, et: 48.0, tot: 98.0, percentage: 81.67, grade: "A" },
+    term2: { eu: 52.0, et: 50.0, tot: 102.0, percentage: 85.00, grade: "A" },
+    term3: { eu: 54.0, et: 52.0, tot: 106.0, percentage: 88.33, grade: "A" },
+    annual: { eu: 156.0, et: 150.0, tot: 306.0, percentage: 85.00, grade: "A" }
+  },
+  {
+    subject: "Kiswahili",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 40.0, et: 38.0, tot: 78.0, percentage: 65.00, grade: "B" },
+    term2: { eu: 42.0, et: 40.0, tot: 82.0, percentage: 68.33, grade: "B" },
+    term3: { eu: 44.0, et: 42.0, tot: 86.0, percentage: 71.67, grade: "B" },
+    annual: { eu: 126.0, et: 120.0, tot: 246.0, percentage: 68.33, grade: "B" }
+  },
+  {
+    subject: "Physical Education and Sports",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 55.0, et: 53.0, tot: 108.0, percentage: 90.00, grade: "A" },
+    term2: { eu: 56.0, et: 54.0, tot: 110.0, percentage: 91.67, grade: "A" },
+    term3: { eu: 57.0, et: 55.0, tot: 112.0, percentage: 93.33, grade: "A" },
+    annual: { eu: 168.0, et: 162.0, tot: 330.0, percentage: 91.67, grade: "A" }
+  },
+  {
+    subject: "Religion and Ethics",
+    maxEU: 60, maxET: 60, maxTOT: 120,
+    term1: { eu: 48.0, et: 46.0, tot: 94.0, percentage: 78.33, grade: "B" },
+    term2: { eu: 50.0, et: 48.0, tot: 98.0, percentage: 81.67, grade: "A" },
+    term3: { eu: 52.0, et: 50.0, tot: 102.0, percentage: 85.00, grade: "A" },
+    annual: { eu: 150.0, et: 144.0, tot: 294.0, percentage: 81.67, grade: "A" }
+  }
+];
 
-const coScholasticActivities = [
-  { activity: "Work Education (Pre-Vocational)" },
-  { activity: "Art Education (Visual & Performing Arts)" },
-  { activity: "Health & Physical Education" },
-  { activity: "Discipline (Attendance / Behaviour / Values)" },
+const gradingScale = [
+  { grade: "A", range: "100-80", points: "6" },
+  { grade: "B", range: "79-75", points: "5" },
+  { grade: "C", range: "74-70", points: "4" },
+  { grade: "D", range: "69-65", points: "3" },
+  { grade: "E", range: "64-60", points: "2" },
+  { grade: "S", range: "59-50", points: "1" },
+  { grade: "F", range: "49-00", points: "0" },
+];
+
+const abbreviations = [
+  { term: "EU", description: "End of Unit Assessment" },
+  { term: "ET", description: "End of Term Assessment" },
+  { term: "GR", description: "Grade" },
+  { term: "TOT", description: "Total" },
+  { term: "MAX", description: "Maximum" },
 ];
 
 const generateStudents = (classInfo: ClassInfo): StudentReport[] => {
-  const isNursery = classInfo.classLevel === "Nursery";
-  const subjects = isNursery ? subjectSets.nursery : subjectSets.primary;
   const names = [
-    ["Amina", "Fatuma", "Nakagwa", "Mr. Nakagwa Edward", "Mrs. Fatuma Nakagwa"],
-    ["Brian", "Kwame", "Osei", "Mr. Osei Kwame", "Mrs. Osei Abena"],
-    ["Claire", "Aline", "Mukamana", "Mr. Mukamana Jean", "Mrs. Mukamana Aline"],
-    ["David", "Jean", "Mutoni", "Mr. Mutoni Jean Paul", "Mrs. Mutoni Marie"],
-    ["Emma", "Grace", "Uwase", "Mr. Uwase Grace Sr.", "Mrs. Uwase Celestine"],
-    ["Felix", "Pierre", "Hakizimana", "Mr. Hakizimana Marc", "Mrs. Hakizimana Diane"],
-    ["Gloria", "Marie", "Uwimana", "Mr. Uwimana Pascal", "Mrs. Uwimana Claire"],
-    ["Henry", "Patrick", "Nkurunziza", "Mr. Nkurunziza Alain", "Mrs. Nkurunziza Rose"],
-    ["Irene", "Claudette", "Ingabire", "Mr. Ingabire Thomas", "Mrs. Ingabire Viviane"],
-    ["James", "Alex", "Niyonzima", "Mr. Niyonzima Alex", "Mrs. Niyonzima Sarah"],
+    "HABINEZAMUBIJURU Jean de Dieu",
+    "MUKAMANZI Claire",
+    "NTWARI David",
+    "UWIMANZ Gloria",
+    "HAKIZIMANA Felix"
   ];
 
-  return names.slice(0, Math.min(names.length, classInfo.studentCount)).map((n, idx) => {
+  return names.slice(0, Math.min(names.length, classInfo.studentCount)).map((name, idx) => {
     const variance = (idx % 3) - 1;
-    const adj = subjects.map((s) => ({
-      ...s,
-      cat1: Math.max(0, Math.min(20, s.cat1 + variance)),
-      cat2: Math.max(0, Math.min(20, s.cat2 + variance)),
-      exam: Math.max(0, Math.min(60, s.exam + variance * 3)),
-      total: Math.max(0, Math.min(100, s.total + variance * 5)),
+    const adjustedSubjects = ordinaryLevelSubjects.map(subject => ({
+      ...subject,
+      term1: {
+        ...subject.term1,
+        eu: Math.max(0, Math.min(60, subject.term1.eu + variance * 2)),
+        et: Math.max(0, Math.min(60, subject.term1.et + variance * 2)),
+        tot: Math.max(0, Math.min(120, subject.term1.tot + variance * 4)),
+        percentage: Math.max(0, Math.min(100, subject.term1.percentage + variance * 3))
+      },
+      term2: {
+        ...subject.term2,
+        eu: Math.max(0, Math.min(60, subject.term2.eu + variance * 2)),
+        et: Math.max(0, Math.min(60, subject.term2.et + variance * 2)),
+        tot: Math.max(0, Math.min(120, subject.term2.tot + variance * 4)),
+        percentage: Math.max(0, Math.min(100, subject.term2.percentage + variance * 3))
+      },
+      term3: {
+        ...subject.term3,
+        eu: Math.max(0, Math.min(60, subject.term3.eu + variance * 2)),
+        et: Math.max(0, Math.min(60, subject.term3.et + variance * 2)),
+        tot: Math.max(0, Math.min(120, subject.term3.tot + variance * 4)),
+        percentage: Math.max(0, Math.min(100, subject.term3.percentage + variance * 3))
+      },
+      annual: {
+        ...subject.annual,
+        eu: Math.max(0, Math.min(180, subject.annual.eu + variance * 6)),
+        et: Math.max(0, Math.min(180, subject.annual.et + variance * 6)),
+        tot: Math.max(0, Math.min(360, subject.annual.tot + variance * 12)),
+        percentage: Math.max(0, Math.min(100, subject.annual.percentage + variance * 3))
+      }
     }));
-    const totalMarks = adj.reduce((sum, m) => sum + m.total, 0);
-    const totalOutOf = adj.length * 100;
-    const percentage = Math.round((totalMarks / totalOutOf) * 100);
-    const coScho = coScholasticActivities.map((a) => ({ activity: a.activity, grade: ["A", "A", "B", "A"][idx % 4] }));
+
+    // Calculate summary
+    const calculateSummary = () => {
+      const terms = ['term1', 'term2', 'term3'] as const;
+      const summary: any = {};
+      
+      terms.forEach(term => {
+        const totalEU = adjustedSubjects.reduce((sum, s) => sum + s[term].eu, 0);
+        const totalET = adjustedSubjects.reduce((sum, s) => sum + s[term].et, 0);
+        const totalTOT = adjustedSubjects.reduce((sum, s) => sum + s[term].tot, 0);
+        const percentage = Math.round((totalTOT / (adjustedSubjects.length * 120)) * 100);
+        const grade = percentage >= 80 ? "A" : percentage >= 70 ? "B" : percentage >= 60 ? "C" : percentage >= 50 ? "D" : percentage >= 40 ? "E" : "S";
+        
+        summary[term] = {
+          totalEU: Math.round(totalEU * 10) / 10,
+          totalET: Math.round(totalET * 10) / 10,
+          totalTOT: Math.round(totalTOT * 10) / 10,
+          percentage,
+          grade,
+          position: `${idx + 1} out of ${classInfo.studentCount}`
+        };
+      });
+
+      // Annual summary
+      const annualEU = adjustedSubjects.reduce((sum, s) => sum + s.annual.eu, 0);
+      const annualET = adjustedSubjects.reduce((sum, s) => sum + s.annual.et, 0);
+      const annualTOT = adjustedSubjects.reduce((sum, s) => sum + s.annual.tot, 0);
+      const annualPercentage = Math.round((annualTOT / (adjustedSubjects.length * 360)) * 100);
+      const annualGrade = annualPercentage >= 80 ? "A" : annualPercentage >= 70 ? "B" : annualPercentage >= 60 ? "C" : annualPercentage >= 50 ? "D" : annualPercentage >= 40 ? "E" : "S";
+
+      summary.annual = {
+        totalEU: Math.round(annualEU * 10) / 10,
+        totalET: Math.round(annualET * 10) / 10,
+        totalTOT: Math.round(annualTOT * 10) / 10,
+        percentage: annualPercentage,
+        grade: annualGrade,
+        position: `${idx + 1} out of ${classInfo.studentCount}`
+      };
+
+      return summary;
+    };
 
     return {
-      id: `${classInfo.id}-${idx + 1}`,
-      studentCode: `ST${classInfo.classId}${String(idx + 1).padStart(3, "0")}`,
-      firstName: n[0], middleName: n[1], lastName: n[2],
-      gender: idx % 2 === 0 ? "Female" : "Male",
-      dob: `${2010 + (idx % 5)}-${String((idx % 12) + 1).padStart(2, "0")}-${String((idx % 28) + 1).padStart(2, "0")}`,
-      fatherName: n[3] as string,
-      motherName: n[4] as string,
-      className: classInfo.name,
-      classLevel: classInfo.classLevel,
+      // Header Information
+      republic: "REPUBLIC OF RWANDA",
+      ministry: "MINISTRY OF EDUCATION",
+      district: "Muhanga",
+      school: "GS BUTARE",
+      schoolCode: "270202",
+      email: "gashirana1@gmail.com",
+      phone: "0784717176",
+      
+      // Student Information
+      studentNames: name,
+      registrationId: `270203170${String(idx + 1).padStart(3, "0")}`,
+      
+      // Academic Information
+      academicYear: classInfo.academicYear,
+      level: "ORDINARY LEVEL",
+      class: classInfo.name,
+      reportTerm: normalizeReportTerm(classInfo.term),
+      
+      // Marks
+      conduct: { term1: 40, term2: 40, term3: 40, annual: 40 },
+      subjects: adjustedSubjects,
+      
+      // Summary
+      summary: calculateSummary(),
+      
+      // Comments
+      classTeacherComment: "Good performance. Keep up the effort.",
+      headteacherComment: "Satisfactory academic progress.",
+      
+      // Decision
+      finalDecision: "Promoted",
+      
+      // Signatures
       classTeacher: classInfo.classTeacher,
-      section: ["A", "B", "C"][idx % 3],
-      rollNo: String(idx + 1),
-      admissionNo: `ADM-${classInfo.classId}-${String(idx + 1).padStart(3, "0")}`,
-      term: classInfo.term, academicYear: classInfo.academicYear,
-      totalMarks, totalOutOf, percentage,
-      rank: idx + 1, totalStudents: classInfo.studentCount,
-      marks: adj,
-      coScholastic: coScho,
-      conductGrade: ["A", "A", "B", "A", "B"][idx % 5],
-      attendanceDays: 60 - (idx % 5), totalDays: 65,
-      principalComment: percentage >= 80
-        ? "Outstanding performance. Promoted with distinction."
-        : percentage >= 60
-          ? "Satisfactory. Promoted to next class."
-          : "Needs improvement. Remedial support recommended.",
-      teacherComment: percentage >= 80
-        ? `${n[0]} is a dedicated and enthusiastic learner. Keep up the great work!`
-        : `${n[0]} shows potential. Regular revision and practice will yield better results.`,
-      result: percentage >= 50 ? "PASS — Promoted to Next Class" : "FAIL — Repeat Class",
-      nextTermBegins: "September 1, 2026",
-      schoolName: "UBRS Academy",
-      schoolAddress: "KG 123 St, Gasabo, Kigali, Rwanda",
-      schoolPhone: "+250 788 000 000",
-      schoolEmail: "info@ubrs.ac.rw",
-      schoolWebsite: "www.ubrs.ac.rw",
-      schoolMotto: "Excellence in Education",
-      affiliationNo: "UBRS-REB-2024-001",
+      headteacher: "GASHIRABAKE Anastase",
+      headteacherSignature: "",
+      
+      // Grading Scale
+      gradingScale,
+      
+      // Abbreviations
+      abbreviations
     };
   });
 };
@@ -169,25 +372,253 @@ export const getStudentsByClass = (classInfo: ClassInfo): StudentReport[] => {
   return studentsCache[classInfo.id];
 };
 
+// ===================== BUILD FROM GRADE API =====================
+
+type GradeRow = {
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  term: string;
+  testMark: number | null;
+  testMaxMark: number | null;
+  examMark: number | null;
+  examMaxMark: number | null;
+};
+
+const num = (v: number | string | null | undefined): number => {
+  if (v === null || v === undefined || v === "") return 0;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const emptyTermMarks = () => ({ eu: 0, et: 0, tot: 0, percentage: 0, grade: "â€”" });
+
+const gradeFromPct = (pct: number): string => {
+  if (pct >= 80) return "A";
+  if (pct >= 75) return "B";
+  if (pct >= 70) return "C";
+  if (pct >= 65) return "D";
+  if (pct >= 60) return "E";
+  if (pct >= 50) return "S";
+  return "F";
+};
+
+const calcTermMarks = (eu: number, et: number, maxEu: number, maxEt: number) => {
+  const tot = eu + et;
+  const maxTot = maxEu + maxEt;
+  const percentage = maxTot > 0 ? Math.round((tot / maxTot) * 10000) / 100 : 0;
+  return {
+    eu: Math.round(eu * 10) / 10,
+    et: Math.round(et * 10) / 10,
+    tot: Math.round(tot * 10) / 10,
+    percentage,
+    grade: percentage > 0 ? gradeFromPct(percentage) : "â€”",
+  };
+};
+
+export const buildStudentReportsFromGrades = (
+  classInfo: ClassInfo,
+  rows: GradeRow[],
+  reportTermInput?: string | null
+): StudentReport[] => {
+  const reportTerm = normalizeReportTerm(reportTermInput || classInfo.term);
+  const fullYear = isFullYearReport(reportTerm);
+
+  // Term 1 / Term 2 â†’ only that term's marks. Term 3 â†’ whole year (all terms).
+  const scopedRows = fullYear
+    ? rows
+    : rows.filter((r) => (r.term || "").toUpperCase() === reportTerm);
+
+  type CourseAgg = {
+    courseId: string;
+    courseName: string;
+    maxEU: number;
+    maxET: number;
+    term1: ReturnType<typeof emptyTermMarks>;
+    term2: ReturnType<typeof emptyTermMarks>;
+    term3: ReturnType<typeof emptyTermMarks>;
+  };
+
+  const byStudent = new Map<
+    string,
+    { studentCode: string; studentName: string; courses: Map<string, CourseAgg> }
+  >();
+
+  scopedRows.forEach((row) => {
+    if (!byStudent.has(row.studentId)) {
+      byStudent.set(row.studentId, {
+        studentCode: row.studentCode,
+        studentName: (row.studentName || "").replace(/\s+/g, " ").trim(),
+        courses: new Map(),
+      });
+    }
+    const student = byStudent.get(row.studentId)!;
+    if (!student.courses.has(row.courseId)) {
+      student.courses.set(row.courseId, {
+        courseId: row.courseId,
+        courseName: row.courseName,
+        maxEU: 0,
+        maxET: 0,
+        term1: emptyTermMarks(),
+        term2: emptyTermMarks(),
+        term3: emptyTermMarks(),
+      });
+    }
+    const course = student.courses.get(row.courseId)!;
+    const testMark = num(row.testMark);
+    const examMark = num(row.examMark);
+    const testMax = num(row.testMaxMark);
+    const examMax = num(row.examMaxMark);
+    if (testMax > course.maxEU) course.maxEU = testMax;
+    if (examMax > course.maxET) course.maxET = examMax;
+
+    const marks = calcTermMarks(testMark, examMark, testMax || course.maxEU, examMax || course.maxET);
+    const termKey = (row.term || "").toUpperCase();
+    if (termKey === "TERM1") course.term1 = marks;
+    else if (termKey === "TERM2") course.term2 = marks;
+    else if (termKey === "TERM3") course.term3 = marks;
+  });
+
+  const reports: StudentReport[] = Array.from(byStudent.values()).map((student) => {
+    const subjects: SubjectMark[] = Array.from(student.courses.values())
+      .sort((a, b) => a.courseName.localeCompare(b.courseName))
+      .map((c) => {
+        const maxEU = c.maxEU || 40;
+        const maxET = c.maxET || 60;
+        const maxTOT = maxEU + maxET;
+        const annualEu = c.term1.eu + c.term2.eu + c.term3.eu;
+        const annualEt = c.term1.et + c.term2.et + c.term3.et;
+        const annualTot = annualEu + annualEt;
+        const annualMax = maxTOT * (fullYear ? 3 : 1);
+        // For single-term reports, "annual" mirrors the selected term for ranking helpers
+        const single = reportTerm === "TERM1" ? c.term1 : reportTerm === "TERM2" ? c.term2 : null;
+        const annualPct = fullYear
+          ? (annualMax > 0 ? Math.round((annualTot / (maxTOT * 3)) * 10000) / 100 : 0)
+          : single?.percentage || 0;
+        return {
+          subject: c.courseName,
+          maxEU,
+          maxET,
+          maxTOT,
+          term1: c.term1,
+          term2: c.term2,
+          term3: c.term3,
+          annual: fullYear
+            ? {
+                eu: Math.round(annualEu * 10) / 10,
+                et: Math.round(annualEt * 10) / 10,
+                tot: Math.round(annualTot * 10) / 10,
+                percentage: annualPct,
+                grade: annualPct > 0 ? gradeFromPct(annualPct) : "â€”",
+              }
+            : {
+                eu: single?.eu || 0,
+                et: single?.et || 0,
+                tot: single?.tot || 0,
+                percentage: single?.percentage || 0,
+                grade: single?.grade || "â€”",
+              },
+        };
+      });
+
+    const buildTermSummary = (term: "term1" | "term2" | "term3") => {
+      const totalEU = subjects.reduce((s, x) => s + x[term].eu, 0);
+      const totalET = subjects.reduce((s, x) => s + x[term].et, 0);
+      const totalTOT = subjects.reduce((s, x) => s + x[term].tot, 0);
+      const maxTotal = subjects.reduce((s, x) => s + x.maxTOT, 0);
+      const percentage = maxTotal > 0 ? Math.round((totalTOT / maxTotal) * 100) : 0;
+      return {
+        totalEU: Math.round(totalEU * 10) / 10,
+        totalET: Math.round(totalET * 10) / 10,
+        totalTOT: Math.round(totalTOT * 10) / 10,
+        percentage,
+        grade: percentage > 0 ? gradeFromPct(percentage) : "â€”",
+        position: "â€”",
+      };
+    };
+
+    const annualEU = subjects.reduce((s, x) => s + x.annual.eu, 0);
+    const annualET = subjects.reduce((s, x) => s + x.annual.et, 0);
+    const annualTOT = subjects.reduce((s, x) => s + x.annual.tot, 0);
+    const annualMax = subjects.reduce((s, x) => s + x.maxTOT * (fullYear ? 3 : 1), 0);
+    const annualPercentage = annualMax > 0 ? Math.round((annualTOT / annualMax) * 100) : 0;
+
+    const term1Summary = buildTermSummary("term1");
+    const term2Summary = buildTermSummary("term2");
+    const term3Summary = buildTermSummary("term3");
+    const displayPct =
+      reportTerm === "TERM1"
+        ? term1Summary.percentage
+        : reportTerm === "TERM2"
+          ? term2Summary.percentage
+          : annualPercentage;
+
+    return {
+      republic: "REPUBLIC OF RWANDA",
+      ministry: "MINISTRY OF EDUCATION",
+      district: "Muhanga",
+      school: "Umwana Bright Academy",
+      schoolCode: "UBRS",
+      email: "info@ubrs.ac.rw",
+      phone: "",
+      studentNames: student.studentName,
+      registrationId: student.studentCode,
+      academicYear: classInfo.academicYear,
+      level: classInfo.level || classInfo.classLevel || "",
+      class: classInfo.name,
+      reportTerm,
+      conduct: { term1: 0, term2: 0, term3: 0, annual: 0 },
+      subjects,
+      summary: {
+        term1: term1Summary,
+        term2: term2Summary,
+        term3: term3Summary,
+        annual: {
+          totalEU: Math.round(annualEU * 10) / 10,
+          totalET: Math.round(annualET * 10) / 10,
+          totalTOT: Math.round(annualTOT * 10) / 10,
+          percentage: annualPercentage,
+          grade: annualPercentage > 0 ? gradeFromPct(annualPercentage) : "â€”",
+          position: "â€”",
+        },
+      },
+      classTeacherComment: "",
+      headteacherComment: "",
+      finalDecision: fullYear
+        ? annualPercentage >= 50
+          ? "Promoted"
+          : "Repeated"
+        : "Ongoing",
+      classTeacher: classInfo.classTeacher,
+      headteacher: "",
+      headteacherSignature: "",
+      gradingScale,
+      abbreviations,
+      // keep for ranking sort below
+      __rankPct: displayPct,
+    } as StudentReport & { __rankPct: number };
+  });
+
+  reports.sort((a, b) => ((b as any).__rankPct || 0) - ((a as any).__rankPct || 0));
+  reports.forEach((r, idx) => {
+    const pos = `${idx + 1} out of ${reports.length}`;
+    r.summary.term1.position = pos;
+    r.summary.term2.position = pos;
+    r.summary.term3.position = pos;
+    r.summary.annual.position = pos;
+    delete (r as any).__rankPct;
+  });
+  reports.sort((a, b) => a.studentNames.localeCompare(b.studentNames));
+
+  return reports;
+};
+
 // ===================== GRADE HELPERS =====================
 
-export const getGradeColor = (grade: string): string => {
-  if (grade.startsWith("A")) return "#16a34a";
-  if (grade.startsWith("B")) return "#2563eb";
-  if (grade.startsWith("C")) return "#d97706";
-  return "#dc2626";
-};
-
-export const getGradeFromPct = (pct: number): string => {
-  if (pct >= 91) return "A1";
-  if (pct >= 81) return "A2";
-  if (pct >= 71) return "B1";
-  if (pct >= 61) return "B2";
-  if (pct >= 51) return "C1";
-  if (pct >= 41) return "C2";
-  if (pct >= 33) return "D";
-  return "E";
-};
+export const getGradeFromPct = (pct: number): string => gradeFromPct(pct);
 
 // ===================== QR MATRIX CODE GENERATOR =====================
 export const generateQRCodeSVG = (data: string, size = 120): string => {
@@ -225,205 +656,318 @@ export const generateQRCodeSVG = (data: string, size = 120): string => {
 
   let rects = "";
   for (let r = 0; r < MODULES; r++) for (let c = 0; c < MODULES; c++) {
-    if (grid[r][c]) rects += `<rect x="${c * cellSize}" y="${r * cellSize}" width="${cellSize}" height="${cellSize}" fill="#1e3a5f"/>`;
+    if (grid[r][c]) rects += `<rect x="${c * cellSize}" y="${r * cellSize}" width="${cellSize}" height="${cellSize}" fill="#000"/>`;
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${actual}" height="${actual}" viewBox="0 0 ${actual} ${actual}" shape-rendering="crispEdges"><rect width="${actual}" height="${actual}" fill="white"/>${rects}</svg>`;
 };
 
-// ===================== MARKSHEET HTML BUILDER =====================
+// ===================== REPORT CARD HTML BUILDER =====================
 export const buildMarksheetHTML = (student: StudentReport): string => {
-  const qrSVG = generateQRCodeSVG(`${student.studentCode}|${student.className}|${student.term}|${student.academicYear}`);
+  const qrSVG = generateQRCodeSVG(`${student.registrationId}|${student.class}|${student.academicYear}|${student.reportTerm}`);
   const qrBase64 = `data:image/svg+xml;base64,${btoa(qrSVG)}`;
+  const fullYear = isFullYearReport(student.reportTerm);
+  const termKey = student.reportTerm === "TERM1" ? "term1" : student.reportTerm === "TERM2" ? "term2" : "term3";
+  const termLabel = formatReportTermLabel(student.reportTerm);
+  const logoSrc = typeof window !== "undefined" ? `${window.location.origin}/images/logo/logo.png` : "/images/logo/logo.png";
+  const levelTitle = (student.level || "ORDINARY LEVEL").toUpperCase();
+  const td = (v: string | number, opts?: { bold?: boolean; red?: boolean; align?: string }) => {
+    const color = opts?.red ? "#dc2626" : "#000";
+    const weight = opts?.bold ? "700" : "400";
+    const align = opts?.align || "center";
+    return `<td style="padding:5px 4px;border:1px solid #000;text-align:${align};font-size:8.5px;color:${color};font-weight:${weight};line-height:1.35;">${v}</td>`;
+  };
+  const markVal = (n: number, asPct = false) => {
+    const text = asPct ? `${n.toFixed(2)}` : n.toFixed(1);
+    return td(text, { red: n > 0 && n < 50 });
+  };
+  const termCells = (m: { eu: number; et: number; tot: number; percentage: number; grade: string }) =>
+    `${markVal(m.eu)}${markVal(m.et)}${markVal(m.tot)}${markVal(m.percentage, true)}${td(m.grade, { bold: true, red: m.percentage > 0 && m.percentage < 50 })}`;
 
-  const gColor = (pct: number) => pct >= 81 ? "#16a34a" : pct >= 61 ? "#2563eb" : pct >= 41 ? "#d97706" : "#dc2626";
+  const annualMaxFor = (s: SubjectMark) => (fullYear ? s.maxTOT * 3 : s.maxTOT);
+  const annualCells = (s: SubjectMark) => {
+    const a = s.annual;
+    const max = annualMaxFor(s);
+    return `${markVal(a.tot)}${td(max.toFixed(1))}${markVal(a.percentage, true)}${td(a.grade, { bold: true, red: a.percentage > 0 && a.percentage < 50 })}`;
+  };
 
-  const subjectRows = student.marks.map((m, i) => {
-    const pct = m.total;
-    const grd = getGradeFromPct(pct);
-    const col = gColor(pct);
-    return `
-    <tr style="background:${i % 2 === 0 ? "#f8fafc" : "#ffffff"}">
-      <td style="padding:5px 7px;border:1px solid #cbd5e1;font-size:10px;font-weight:500;color:#0f172a;">${m.subject}</td>
-      <td style="padding:5px 7px;border:1px solid #cbd5e1;text-align:center;font-size:10px;color:#334155;">${m.cat1}<br/><span style="font-size:8px;color:#94a3b8;">/20</span></td>
-      <td style="padding:5px 7px;border:1px solid #cbd5e1;text-align:center;font-size:10px;color:#334155;">${m.cat2}<br/><span style="font-size:8px;color:#94a3b8;">/20</span></td>
-      <td style="padding:5px 7px;border:1px solid #cbd5e1;text-align:center;font-size:10px;color:#334155;">${m.exam}<br/><span style="font-size:8px;color:#94a3b8;">/60</span></td>
-      <td style="padding:5px 7px;border:1px solid #cbd5e1;text-align:center;font-size:11px;font-weight:800;color:#0f172a;">${m.total}<br/><span style="font-size:8px;color:#94a3b8;font-weight:400;">/100</span></td>
-      <td style="padding:4px 7px;border:1px solid #cbd5e1;text-align:center;">
-        <span style="display:inline-block;padding:2px 7px;border-radius:999px;font-size:9.5px;font-weight:800;background:${col}18;color:${col};border:1px solid ${col}44;">${grd}</span>
-      </td>
-      <td style="padding:5px 7px;border:1px solid #cbd5e1;font-size:9.5px;color:#64748b;">${m.remarks}</td>
+  const subjectRows = student.subjects.map((subject) => {
+    if (!fullYear) {
+      const m = subject[termKey];
+      return `<tr>
+        ${td(subject.subject, { align: "left", bold: true })}
+        ${td(subject.maxEU)}${td(subject.maxET)}${td(subject.maxTOT)}
+        ${termCells(m)}
+      </tr>`;
+    }
+    return `<tr>
+      ${td(subject.subject, { align: "left", bold: true })}
+      ${td(subject.maxEU)}${td(subject.maxET)}${td(subject.maxTOT)}
+      ${termCells(subject.term1)}
+      ${termCells(subject.term2)}
+      ${termCells(subject.term3)}
+      ${annualCells(subject)}
     </tr>`;
   }).join("");
 
-  const coSchoRows = student.coScholastic.map((a) => `
-    <tr>
-      <td style="padding:4px 7px;border:1px solid #cbd5e1;font-size:9px;font-style:italic;">${a.activity}</td>
-      <td style="padding:4px 7px;border:1px solid #cbd5e1;text-align:center;font-weight:800;font-size:10px;color:#16a34a;">${a.grade}</td>
-    </tr>`).join("");
+  const maxEU = student.subjects.reduce((s, x) => s + x.maxEU, 0);
+  const maxET = student.subjects.reduce((s, x) => s + x.maxET, 0);
+  const maxTOT = student.subjects.reduce((s, x) => s + x.maxTOT, 0);
+  const annualMaxTotal = student.subjects.reduce((s, x) => s + annualMaxFor(x), 0);
+  const summary = getReportDisplaySummary(student);
+  const colSpanMax = 3;
+  const colSpanTerm = 5;
+  const colSpanAnnual = 4;
+  const totalDataCols = fullYear ? colSpanMax + colSpanTerm * 3 + colSpanAnnual : colSpanMax + colSpanTerm;
 
-  const totalPct = student.percentage;
-  const totalGrd = getGradeFromPct(totalPct);
-  const totalCol = gColor(totalPct);
+  const termSummaryCells = (t: typeof student.summary.term1) =>
+    `${td(t.totalEU.toFixed(1))}${td(t.totalET.toFixed(1))}${td(t.totalTOT.toFixed(1))}${td(`${t.percentage}%`, { bold: true })}${td(t.grade, { bold: true })}`;
+
+  const conduct = student.conduct;
+  const conductRow = fullYear
+    ? `<tr>
+        ${td("Conduct", { align: "left", bold: true })}
+        ${td("")}${td("")}${td("")}
+        ${td(conduct.term1 || "")}${td("")}${td(conduct.term1 || "")}${td("")}${td("")}
+        ${td(conduct.term2 || "")}${td("")}${td(conduct.term2 || "")}${td("")}${td("")}
+        ${td(conduct.term3 || "")}${td("")}${td(conduct.term3 || "")}${td("")}${td("")}
+        ${td(conduct.annual || "")}${td("")}${td("")}${td("")}
+      </tr>`
+    : `<tr>
+        ${td("Conduct", { align: "left", bold: true })}
+        ${td("")}${td("")}${td("")}
+        ${td(conduct[termKey] || "")}${td("")}${td(conduct[termKey] || "")}${td("")}${td("")}
+      </tr>`;
+
+  const weightRow = fullYear
+    ? `<tr>
+        ${td("WEIGHT", { align: "left", bold: true })}
+        ${td("50%")}${td("50%")}${td("100%")}
+        ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+        ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+        ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+        ${td("")}${td("")}${td("")}${td("")}
+      </tr>`
+    : `<tr>
+        ${td("WEIGHT", { align: "left", bold: true })}
+        ${td("50%")}${td("50%")}${td("100%")}
+        ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+      </tr>`;
+
+  const totalRow = fullYear
+    ? `<tr>
+        ${td("Total", { align: "left", bold: true })}
+        ${td(maxEU.toFixed(1))}${td(maxET.toFixed(1))}${td(maxTOT.toFixed(1))}
+        ${termSummaryCells(student.summary.term1)}
+        ${termSummaryCells(student.summary.term2)}
+        ${termSummaryCells(student.summary.term3)}
+        ${td(student.summary.annual.totalTOT.toFixed(1))}${td(annualMaxTotal.toFixed(1))}${td(`${student.summary.annual.percentage}%`, { bold: true })}${td(student.summary.annual.grade, { bold: true })}
+      </tr>`
+    : `<tr>
+        ${td("Total", { align: "left", bold: true })}
+        ${td(maxEU.toFixed(1))}${td(maxET.toFixed(1))}${td(maxTOT.toFixed(1))}
+        ${termSummaryCells(summary)}
+      </tr>`;
+
+  const spanTermSummary = (label: string, t1: string, t2: string, t3: string, ann: string) => fullYear
+    ? `<tr>
+        ${td(label, { align: "left", bold: true })}
+        <td colspan="${colSpanMax}" style="padding:5px 4px;border:1px solid #000;"></td>
+        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t1}</td>
+        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t2}</td>
+        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t3}</td>
+        <td colspan="${colSpanAnnual}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${ann}</td>
+      </tr>`
+    : `<tr>
+        ${td(label, { align: "left", bold: true })}
+        <td colspan="${colSpanMax}" style="padding:5px 4px;border:1px solid #000;"></td>
+        <td colspan="${colSpanTerm}" style="padding:5px 4px;border:1px solid #000;text-align:center;font-size:8.5px;font-weight:700;">${t1}</td>
+      </tr>`;
+
+  const tableHead = fullYear
+    ? `<tr>
+        <th rowspan="2" style="padding:6px 4px;border:1px solid #000;font-size:9px;text-align:left;">SUBJECT</th>
+        <th colspan="3" style="padding:6px 4px;border:1px solid #000;font-size:9px;">MAXIMUM</th>
+        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Term 1</th>
+        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Term 2</th>
+        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Term 3</th>
+        <th colspan="4" style="padding:6px 4px;border:1px solid #000;font-size:9px;">Annual Total</th>
+      </tr>
+      <tr>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">MAX</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+      </tr>`
+    : `<tr>
+        <th rowspan="2" style="padding:6px 4px;border:1px solid #000;font-size:9px;text-align:left;">SUBJECT</th>
+        <th colspan="3" style="padding:6px 4px;border:1px solid #000;font-size:9px;">MAXIMUM</th>
+        <th colspan="5" style="padding:6px 4px;border:1px solid #000;font-size:9px;">${termLabel}</th>
+      </tr>
+      <tr>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">EU</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">ET</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">TOT</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">%</th>
+        <th style="padding:4px 2px;border:1px solid #000;font-size:8px;">GR</th>
+      </tr>`;
+
+  const gradingScaleRows = `
+    <tr>
+      <td style="padding:4px 6px;border:1px solid #000;font-size:8px;font-weight:700;">Final Grade</td>
+      ${gradingScale.map((g) => `<td style="padding:4px 6px;border:1px solid #000;font-size:8px;text-align:center;">${g.range}</td>`).join("")}
+    </tr>
+    <tr>
+      <td style="padding:4px 6px;border:1px solid #000;font-size:8px;font-weight:700;">Letter Grade</td>
+      ${gradingScale.map((g) => `<td style="padding:4px 6px;border:1px solid #000;font-size:8px;text-align:center;font-weight:700;">${g.grade}</td>`).join("")}
+    </tr>
+    <tr>
+      <td style="padding:4px 6px;border:1px solid #000;font-size:8px;font-weight:700;">Grade Value</td>
+      ${gradingScale.map((g) => `<td style="padding:4px 6px;border:1px solid #000;font-size:8px;text-align:center;">${g.points}</td>`).join("")}
+    </tr>`;
+
+  const abbrText = abbreviations.map((a) => `${a.term}: ${a.description}`).join(" · ");
 
   return `
-<div class="marksheet" style="
+<div class="report-card" style="
   font-family:'Times New Roman',Times,serif;
-  max-width:700px;
+  width:100%;
+  max-width:210mm;
+  min-height:277mm;
+  height:auto;
   margin:0 auto;
   background:#fff;
-  border:2px solid #1e3a5f;
+  border:1.5px solid #000;
   page-break-after:always;
-  position:relative;
-  overflow:hidden;
+  color:#000;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
 ">
-  <!-- Inner border -->
-  <div style="position:absolute;inset:4px;border:1px solid #1e3a5f;pointer-events:none;z-index:0;"></div>
-
-  <!-- Watermark -->
-  <div style="position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:50px;color:rgba(30,58,95,0.04);font-weight:900;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:4px;font-family:Arial;">UBRS ACADEMY</div>
-
-  <!-- ══ HEADER ══ -->
-  <div style="padding:10px 16px 8px;text-align:center;border-bottom:2px solid #1e3a5f;position:relative;z-index:1;">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <!-- Left logo -->
-      <div style="flex-shrink:0;width:58px;height:58px;border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;border:1px solid #cbd5e1;overflow:hidden;">
-        <img src="/assets/logo.png" alt="Logo" style="width:100%;height:100%;object-fit:contain;padding:3px;"/>
-      </div>
-
-      <!-- Centre school info -->
-      <div style="flex:1;padding:0 12px;">
-        <div style="font-size:18px;font-weight:900;color:#dc2626;font-family:Arial;letter-spacing:0.9px;text-transform:uppercase;line-height:1.15;">${student.schoolName}</div>
-        <div style="font-size:9px;color:#475569;margin-top:2px;">${student.schoolAddress}</div>
-        <div style="font-size:8.5px;color:#475569;">Ph: ${student.schoolPhone} | ${student.schoolEmail}</div>
-        <div style="margin-top:4px;background:#1e3a5f;color:#fff;font-size:8px;font-weight:600;padding:2px 10px;border-radius:999px;display:inline-block;letter-spacing:0.4px;">${student.schoolMotto}</div>
-      </div>
-
-      <!-- Right QR code -->
-      <div style="flex-shrink-0;text-align:center;">
-        <div style="border:2px solid #e2e8f0;border-radius:6px;padding:3px;background:#f8fafc;display:inline-block;">
-          <img src="${qrBase64}" alt="QR" style="width:58px;height:58px;display:block;image-rendering:pixelated;"/>
-        </div>
-        <div style="font-size:7px;color:#94a3b8;margin-top:2px;font-family:monospace;">${student.studentCode}</div>
-        <div style="font-size:7px;color:#94a3b8;">Scan to verify</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px 10px;border-bottom:1px solid #000;">
+    <div style="display:flex;gap:10px;align-items:flex-start;flex:1;">
+      <img src="${logoSrc}" alt="School Logo" style="width:72px;height:72px;object-fit:contain;border:1px solid #000;padding:3px;background:#fff;"/>
+      <div style="font-size:10px;line-height:1.45;">
+        <div style="font-weight:900;letter-spacing:0.4px;">${student.republic}</div>
+        <div style="font-weight:700;">${student.ministry}</div>
+        <div>DISTRICT: ${student.district}</div>
+        <div>School: ${student.school}</div>
+        <div>School Code: ${student.schoolCode}</div>
+        <div>E-mail: ${student.email}</div>
+        <div>Phone: ${student.phone}</div>
       </div>
     </div>
-
-    <!-- Report Card title -->
-    <div style="margin-top:6px;padding:3px 0;border-top:1.5px solid #1e3a5f;border-bottom:1.5px solid #1e3a5f;">
-      <div style="font-size:12px;font-weight:900;color:#1e3a5f;letter-spacing:1.3px;text-transform:uppercase;font-family:Arial;">ACADEMIC SESSION : ${student.academicYear}</div>
-      <div style="font-size:10px;font-weight:700;color:#1e3a5f;letter-spacing:0.4px;margin-top:2px;">${student.term.toUpperCase()} REPORT CARD FOR ${student.classLevel.toUpperCase()}</div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div style="border:2px solid #000;padding:14px 18px;text-align:center;font-weight:900;font-size:13px;letter-spacing:0.5px;text-transform:uppercase;">
+        STUDENT REPORT CARD: ${levelTitle}
+        <div style="font-size:10px;font-weight:700;margin-top:6px;text-transform:none;">${termLabel}</div>
+      </div>
     </div>
   </div>
 
-  <!-- ══ STUDENT PROFILE ══ -->
-  <div style="padding:6px 16px;border-bottom:1.5px solid #cbd5e1;position:relative;z-index:1;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;">
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:100px;">Name of Student</span><span style="font-size:9px;color:#334155;">: <strong>${student.firstName} ${student.middleName} ${student.lastName}</strong></span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:85px;">Admission No.</span><span style="font-size:9px;color:#334155;">: ${student.admissionNo}</span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:100px;">Father's Name</span><span style="font-size:9px;color:#334155;">: ${student.fatherName}</span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:85px;">Class &amp; Section</span><span style="font-size:9px;color:#334155;">: ${student.className} — ${student.section}</span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:100px;">Mother's Name</span><span style="font-size:9px;color:#334155;">: ${student.motherName}</span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:85px;">Attendance</span><span style="font-size:9px;color:#334155;">: ${student.attendanceDays}/${student.totalDays}</span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:100px;">Date of Birth</span><span style="font-size:9px;color:#334155;">: ${student.dob}</span></div>
-      <div style="display:flex;gap:4px;padding:2px 0;"><span style="font-size:9px;font-weight:700;color:#1e3a5f;min-width:85px;">Roll No.</span><span style="font-size:9px;color:#334155;">: ${student.rollNo}</span></div>
+  <div style="margin:10px 12px;border:1.5px solid #000;padding:10px 12px;font-size:10px;">
+    <div style="display:flex;justify-content:space-between;gap:12px;">
+      <div>
+        <div><strong>Names:</strong> ${student.studentNames}</div>
+        <div><strong>Registration ID:</strong> ${student.registrationId}</div>
+      </div>
+      <div style="text-align:right;">
+        <div><strong>Academic Year:</strong> ${student.academicYear}</div>
+        <div><strong>Level:</strong> ${student.level || levelTitle}</div>
+        <div><strong>Class:</strong> ${student.class}</div>
+      </div>
     </div>
   </div>
 
-  <!-- ══ SCHOLASTIC AREAS TABLE ══ -->
-  <div style="padding:6px 16px 5px;position:relative;z-index:1;">
-    <table style="width:100%;border-collapse:collapse;border:1.5px solid #1e3a5f;">
-      <thead>
+  <div style="padding:0 12px 12px;flex:1;display:flex;flex-direction:column;">
+    <table style="width:100%;border-collapse:collapse;border:1px solid #000;flex:1;">
+      <thead>${tableHead}</thead>
+      <tbody>
+        ${weightRow}
+        ${conductRow}
+        <tr><td colspan="${1 + totalDataCols}" style="padding:5px 6px;border:1px solid #000;font-size:9px;font-weight:700;background:#f3f3f3;">All Subjects</td></tr>
+        ${subjectRows}
+        ${totalRow}
+        ${spanTermSummary(
+          "Percentage",
+          fullYear ? `${student.summary.term1.percentage}%` : `${summary.percentage}%`,
+          `${student.summary.term2.percentage}%`,
+          `${student.summary.term3.percentage}%`,
+          `${student.summary.annual.percentage}%`
+        )}
+        ${spanTermSummary(
+          "Final Grade",
+          fullYear ? student.summary.term1.grade : summary.grade,
+          student.summary.term2.grade,
+          student.summary.term3.grade,
+          student.summary.annual.grade
+        )}
+        ${spanTermSummary(
+          "Position",
+          fullYear ? student.summary.term1.position : summary.position,
+          student.summary.term2.position,
+          student.summary.term3.position,
+          student.summary.annual.position
+        )}
         <tr>
-          <th colspan="7" style="padding:5px;background:#1e3a5f;color:#fff;font-size:10px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;font-family:Arial;">Scholastic Areas</th>
-        </tr>
-        <tr style="background:#e8eef7;">
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:9px;text-align:left;min-width:120px;color:#1e3a5f;">SUBJECTS</th>
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:center;color:#1e3a5f;">CAT - 1<br/><span style="font-weight:400;font-size:7.5px;">(20)</span></th>
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:center;color:#1e3a5f;">CAT - 2<br/><span style="font-weight:400;font-size:7.5px;">(20)</span></th>
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:center;color:#1e3a5f;">EXAM<br/><span style="font-weight:400;font-size:7.5px;">(60)</span></th>
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:center;color:#1e3a5f;">MARKS OBTAINED<br/><span style="font-weight:400;font-size:7.5px;">(100)</span></th>
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:center;color:#1e3a5f;">GRADE</th>
-          <th style="padding:5px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:left;color:#1e3a5f;">REMARKS</th>
-        </tr>
-      </thead>
-      <tbody>${subjectRows}</tbody>
-      <tfoot>
-        <tr style="background:#1e3a5f;color:#fff;">
-          <td style="padding:5px 7px;border:1px solid #334155;font-size:9px;font-weight:800;letter-spacing:0.4px;">AGGREGATE</td>
-          <td colspan="3" style="border:1px solid #334155;"></td>
-          <td style="padding:5px 7px;border:1px solid #334155;text-align:center;font-size:12px;font-weight:900;">${student.totalMarks}<span style="font-size:8px;font-weight:400;opacity:0.7;">/${student.totalOutOf}</span></td>
-          <td style="padding:3px 7px;border:1px solid #334155;text-align:center;">
-            <span style="display:inline-block;padding:2px 9px;border-radius:999px;background:${totalCol}22;color:${totalCol};border:1.5px solid ${totalCol};font-size:10px;font-weight:900;">${totalGrd}</span>
+          <td colspan="${1 + totalDataCols}" style="padding:12px 10px;border:1px solid #000;font-size:9px;vertical-align:top;height:72px;">
+            <strong>Comment:</strong><br/>
+            Class Teacher: ${student.classTeacherComment || ""}<br/>
+            Headteacher: ${student.headteacherComment || ""}
           </td>
-          <td style="padding:5px 7px;border:1px solid #334155;font-size:9px;">${totalPct}% — ${totalPct >= 81 ? "Excellent" : totalPct >= 61 ? "Good" : totalPct >= 41 ? "Satisfactory" : "Needs Improvement"}</td>
         </tr>
-      </tfoot>
-    </table>
-  </div>
-
-  <!-- ══ CO-SCHOLASTIC AREAS ══ -->
-  <div style="padding:5px 16px;position:relative;z-index:1;">
-    <table style="width:100%;border-collapse:collapse;border:1.5px solid #1e3a5f;">
-      <thead>
         <tr>
-          <th colspan="2" style="padding:3px;background:#1e3a5f;color:#fff;font-size:9px;font-weight:800;letter-spacing:0.4px;text-align:left;padding-left:8px;">Co-Scholastic Activities &nbsp;&nbsp;<span style="font-size:8px;font-weight:400;opacity:0.85;">(On a 3-point A–C grading scale)</span></th>
+          <td colspan="${Math.ceil((1 + totalDataCols) / 2)}" style="padding:16px 10px;border:1px solid #000;font-size:9px;height:64px;vertical-align:bottom;">
+            Class Teacher's Signature<br/><span style="font-size:8px;">${student.classTeacher || ""}</span>
+          </td>
+          <td colspan="${Math.floor((1 + totalDataCols) / 2)}" style="padding:16px 10px;border:1px solid #000;font-size:9px;height:64px;vertical-align:bottom;">
+            Parent's Signature
+          </td>
         </tr>
-        <tr style="background:#e8eef7;">
-          <th style="padding:3px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:left;color:#1e3a5f;">Activity</th>
-          <th style="padding:3px 7px;border:1px solid #cbd5e1;font-size:8.5px;text-align:center;color:#1e3a5f;width:90px;">Grade</th>
-        </tr>
-      </thead>
-      <tbody>${coSchoRows}</tbody>
+      </tbody>
     </table>
   </div>
 
-  <!-- ══ GRADING SCALE ══ -->
-  <div style="padding:4px 16px;position:relative;z-index:1;">
-    <div style="border:1px solid #e2e8f0;border-radius:5px;padding:6px 10px;background:#f8fafc;">
-      <div style="font-size:8px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;">Grading Scale for Scholastic Areas (8-point scale)</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;">
-        ${[["A1", "91-100", "#16a34a"], ["A2", "81-90", "#15803d"], ["B1", "71-80", "#2563eb"], ["B2", "61-70", "#1d4ed8"], ["C1", "51-60", "#d97706"], ["C2", "41-50", "#b45309"], ["D", "33-40", "#9a3412"], ["E", "≤32", "#dc2626"]]
-      .map(([g, r, c]) => `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:${c}14;border:1px solid ${c}33;"><span style="font-size:9px;font-weight:800;color:${c};">${g}</span><span style="font-size:8px;color:#64748b;">${r}</span></span>`).join("")}
+  <div style="display:flex;gap:10px;padding:0 12px 14px;align-items:stretch;margin-top:auto;">
+    <div style="flex:1.2;">
+      <table style="width:100%;border-collapse:collapse;border:1px solid #000;">${gradingScaleRows}</table>
+      <div style="margin-top:8px;border:1px solid #000;padding:10px;font-size:9px;">
+        <div><strong>Final Decision:</strong> ${student.finalDecision}</div>
+        <div style="margin-top:6px;"><strong>Abbreviations:</strong> ${abbrText}</div>
       </div>
     </div>
-  </div>
-
-  <!-- ══ TEACHER REMARKS ══ -->
-  <div style="padding:5px 16px;position:relative;z-index:1;">
-    <div style="border:1.5px solid #e2e8f0;border-radius:5px;padding:8px 10px;">
-      <div style="font-size:9px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;">Class Teacher's Remarks:</div>
-      <div style="font-size:10px;color:#334155;font-style:italic;">${student.teacherComment}</div>
+    <div style="flex:1;border:1px solid #000;padding:12px;font-size:9px;display:flex;flex-direction:column;justify-content:space-between;min-height:120px;">
+      <div>
+        <div style="font-weight:700;">Headteacher</div>
+        <div>${student.headteacher || ""}</div>
+      </div>
+      <div style="margin-top:28px;border-top:1px solid #000;padding-top:6px;">Signature</div>
     </div>
-  </div>
-
-  <!-- ══ RESULT ══ -->
-  <div style="padding:3px 16px;position:relative;z-index:1;">
-    <div style="font-size:11px;font-weight:800;color:${student.percentage >= 50 ? "#16a34a" : "#dc2626"};">Result : ${student.result}</div>
-  </div>
-
-  <!-- ══ SIGNATURES ══ -->
-  <div style="padding:8px 16px 12px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1.5px solid #cbd5e1;position:relative;z-index:1;">
-    <div style="text-align:center;">
-      <div style="width:110px;height:32px;border-bottom:1.5px solid #334155;margin-bottom:3px;"></div>
-      <div style="font-size:9px;font-weight:700;color:#1e3a5f;">Signature of Parent</div>
+    <div style="width:100px;border:1px solid #000;padding:8px;text-align:center;">
+      <img src="${qrBase64}" alt="QR" style="width:78px;height:78px;image-rendering:pixelated;"/>
+      <div style="font-size:7px;margin-top:6px;">Generated by UBRS</div>
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:9px;color:#475569;font-style:italic;margin-bottom:2px;">${student.classTeacher}</div>
-      <div style="width:130px;height:32px;border-bottom:1.5px solid #334155;margin-bottom:3px;"></div>
-      <div style="font-size:9px;font-weight:700;color:#1e3a5f;">Signature of Class Teacher</div>
-    </div>
-    <div style="text-align:center;">
-      <div style="width:110px;height:32px;border-bottom:1.5px solid #334155;margin-bottom:3px;"></div>
-      <div style="font-size:9px;font-weight:700;color:#1e3a5f;">Signature of Principal</div>
-    </div>
-  </div>
-
-  <!-- ══ FOOTER ══ -->
-  <div style="background:#1e3a5f;padding:4px 16px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;">
-    <div style="font-size:8px;color:#93c5fd;">Generated: ${new Date().toLocaleDateString("en-RW", { year: "numeric", month: "long", day: "numeric" })}</div>
-    <div style="font-size:8px;color:#93c5fd;font-weight:700;">Verify at: ${student.schoolWebsite}/verify</div>
-    <div style="font-size:8px;color:#93c5fd;">Next Term Begins: <strong style="color:#fff;">${student.nextTermBegins}</strong></div>
   </div>
 </div>`;
 };
@@ -433,32 +977,41 @@ export const printStudentReport = (student: StudentReport): void => {
   const win = window.open("", "_blank", "width=920,height=750");
   if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head>
-    <title>Report Card — ${student.firstName} ${student.lastName}</title>
+    <title>Report Card - ${student.studentNames}</title>
     <meta charset="UTF-8"/>
     <style>
-      @page{size:A4;margin:5mm;}
-      body{margin:0;padding:8px;background:#fff;font-family:'Times New Roman',Times,serif;}
-      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+      @page{size:A4 portrait;margin:8mm;}
+      html,body{margin:0;padding:0;background:#fff;font-family:'Times New Roman',Times,serif;height:100%;}
+      body{padding:0;}
+      .report-card{min-height:277mm;width:100%;box-sizing:border-box;}
+      @media print{
+        body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+        .report-card{min-height:277mm;height:277mm;}
+      }
     </style>
   </head><body>${buildMarksheetHTML(student)}</body></html>`);
   win.document.close(); win.focus();
   setTimeout(() => win.print(), 650);
 };
 
-export const printAllClassReports = (classInfo: ClassInfo): void => {
-  const students = getStudentsByClass(classInfo);
+export const printAllClassReports = (classInfo: ClassInfo, students?: StudentReport[]): void => {
+  const list = students ?? getStudentsByClass(classInfo);
   const win = window.open("", "_blank", "width=920,height=750");
   if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head>
-    <title>Class Reports — ${classInfo.name}</title>
+    <title>Class Report Cards - ${classInfo.name}</title>
     <meta charset="UTF-8"/>
     <style>
-      @page{size:A4;margin:8mm;}
-      body{margin:0;padding:10px;background:#fff;font-family:'Times New Roman',Times,serif;}
-      .marksheet{page-break-after:always;}
-      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+      @page{size:A4 portrait;margin:8mm;}
+      html,body{margin:0;padding:0;background:#fff;font-family:'Times New Roman',Times,serif;}
+      .report-card{page-break-after:always;min-height:277mm;width:100%;box-sizing:border-box;}
+      @media print{
+        body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+        .report-card{min-height:277mm;height:277mm;}
+      }
     </style>
-  </head><body>${students.map(buildMarksheetHTML).join("")}</body></html>`);
+  </head><body>${list.map(buildMarksheetHTML).join("")}</body></html>`);
   win.document.close(); win.focus();
   setTimeout(() => win.print(), 900);
 };
+

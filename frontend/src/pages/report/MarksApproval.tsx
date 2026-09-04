@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
@@ -6,10 +6,11 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
-import { ClassApproval, ApprovalStatus, sampleApprovalData, STATUS_CFG } from "./approvalData";
+import { ApprovalStatus, STATUS_CFG, normalizeApprovalStatus } from "./approvalData";
+import { gradeService, ClassGradeStatusProjection } from "../../services/gradeService";
 
 function StatusBadge({ status }: { status: ApprovalStatus }) {
-  const cfg = STATUS_CFG[status];
+  const cfg = STATUS_CFG[status] || STATUS_CFG["pending"];
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.classes}`}>
       <span className={`size-1.5 rounded-full ${cfg.dot}`} />
@@ -20,17 +21,31 @@ function StatusBadge({ status }: { status: ApprovalStatus }) {
 
 export default function MarksApproval() {
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [data, setData] = useState<ClassApproval[]>(sampleApprovalData);
+  const [data, setData] = useState<ClassGradeStatusProjection[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  useEffect(() => {
+    const fetchClassGrades = async () => {
+      try {
+        const res = await gradeService.getClassGradeStatus();
+        setData(res);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClassGrades();
+  }, []);
+
   const filtered = useMemo(() =>
     data.filter((c) => {
-      if (levelFilter !== "All" && !c.classLevel.startsWith(levelFilter)) return false;
-      if (search && !c.className.toLowerCase().includes(search.toLowerCase()) && !c.classTeacher.toLowerCase().includes(search.toLowerCase())) return false;
+      if (levelFilter !== "All" && !c.classLevel?.startsWith(levelFilter)) return false;
+      if (search && !c.className?.toLowerCase().includes(search.toLowerCase()) && !c.classTeacher?.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     }),
   [data, search, levelFilter]);
@@ -39,23 +54,16 @@ export default function MarksApproval() {
   const currentPage = Math.min(page, pageCount);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const getClassStatus = (cls: ClassApproval): ApprovalStatus => {
-    const all = cls.subjects;
-    if (all.every((s) => s.status === "approved")) return "approved";
-    if (all.some((s) => s.status === "rejected")) return "rejected";
-    if (all.some((s) => s.status === "submitted")) return "submitted";
-    return "pending";
-  };
-
   // Overall stats
-  const allSubjects = data.flatMap((c) => c.subjects);
   const overallStats = {
     classes: data.length,
-    approved: allSubjects.filter((s) => s.status === "approved").length,
-    submitted: allSubjects.filter((s) => s.status === "submitted").length,
-    pending: allSubjects.filter((s) => s.status === "pending").length,
-    rejected: allSubjects.filter((s) => s.status === "rejected").length,
+    approved: data.reduce((sum, c) => sum + (c.approved || 0), 0),
+    submitted: 0, // Not available in new projection
+    pending: data.reduce((sum, c) => sum + ((c.subjects || 0) - (c.approved || 0)), 0),
+    rejected: 0,  // Not available in new projection
   };
+
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading...</div>;
 
   return (
     <>
@@ -117,21 +125,17 @@ export default function MarksApproval() {
                       <TableCell className="px-5 py-10 text-center text-gray-400" colSpan={9}>No classes found.</TableCell>
                     </TableRow>
                   ) : paginated.map((cls, idx) => {
-                    const approved = cls.subjects.filter((s) => s.status === "approved").length;
-                    const total    = cls.subjects.length;
+                    const approved = cls.approved || 0;
+                    const total    = cls.subjects || 0;
                     const pct      = total ? Math.round((approved / total) * 100) : 0;
-                    const status   = getClassStatus(cls);
+                    const status   = normalizeApprovalStatus(cls.status);
                     return (
                       <TableRow key={cls.classId} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors">
                         <TableCell className="px-5 py-4 text-gray-400 text-xs">{(currentPage - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell className="px-5 py-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="size-9 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#2563eb] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                              {cls.className.slice(0, 2).toUpperCase()}
-                            </div>
+                          <div className="flex items-center gap-2.5"> 
                             <div>
-                              <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{cls.className}</div>
-                              <div className="text-[10px] text-gray-400">{cls.classId}</div>
+                              <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{cls.className}</div> 
                             </div>
                           </div>
                         </TableCell>
@@ -154,7 +158,7 @@ export default function MarksApproval() {
                         <TableCell className="px-5 py-4">
                           <button
                             id={`view-details-${cls.classId}`}
-                            onClick={() => navigate(`/marks-approval/${cls.classId}`)}
+                            onClick={() => navigate(`/marks-approval/details`, { state: { classId: cls.classId, term: cls.term, className: cls.className, academicYearId: cls.academicYearId } })}
                             className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors dark:bg-brand-900/30 dark:text-brand-300 dark:hover:bg-brand-900/50 whitespace-nowrap"
                           >
                             <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

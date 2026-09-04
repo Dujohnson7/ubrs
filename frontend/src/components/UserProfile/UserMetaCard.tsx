@@ -1,11 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useModal } from "../../hooks/useModal";
+import { useAuth } from "../../hooks/useAuth";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { API_CONFIG } from "../../config/api";
+import { profileService } from "../../services/profileService";
+import SignatureDialog from "./SignatureDialog";
+import { toast } from "../../utils/toast";
 
 export default function UserMetaCard() {
+  const { user, updateUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const {
     isOpen: isPersonalModalOpen,
     openModal: openPersonalModal,
@@ -13,29 +22,71 @@ export default function UserMetaCard() {
   } = useModal();
 
   const {
-    isOpen: isPasswordModalOpen,
-    openModal: openPasswordModal,
-    closeModal: closePasswordModal,
+    isOpen: isSignatureModalOpen,
+    openModal: openSignatureModal,
+    closeModal: closeSignatureModal,
   } = useModal();
+ 
 
-  const [firstName, setFirstName] = useState("Johnson");
-  const [lastName, setLastName] = useState("Duhimbazimana");
-  const [email, setEmail] = useState("johnson@pimjo.com");
-  const [phone, setPhone] = useState("+250792104882");
-  const [bio, setBio] = useState("System Administrator");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState(user?.names?.split(" ")[0] || "");
+  const [lastName, setLastName] = useState(user?.names?.split(" ").slice(1).join(" ") || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [bio, setBio] = useState(user?.role || "");
 
-  const handlePersonalInfoSave = () => {
-    console.log("Saving personal information...", {
-      firstName,
-      lastName,
-      email,
-      phone,
-      bio,
-    });
-    closePersonalModal();
+  const handlePersonalInfoSave = async () => {
+    if (!user) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("names", `${firstName} ${lastName}`.trim());
+      formData.append("email", email);
+      formData.append("phone", phone);
+      // Can append more if supported by DTO
+
+      const updatedUser = await profileService.updateProfile(user.userId, formData);
+      updateUser(updatedUser);
+      closePersonalModal();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && user) {
+      const file = e.target.files[0];
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("profileFile", file);
+        
+        const updatedUser = await profileService.updateProfile(user.userId, formData);
+        updateUser(updatedUser);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handleSignatureSave = async (file: File) => {
+    if (!user) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("userSignature", file);
+      
+      const updatedUser = await profileService.uploadSignature(user.userId, formData);
+      updateUser(updatedUser);
+      closeSignatureModal();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleResetPassword = () => {
@@ -53,15 +104,34 @@ export default function UserMetaCard() {
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-            <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-              <img src="/images/user/owner.jpg" alt="user" />
+            <div className="relative group">
+              <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
+                <img 
+                  src={user?.profile ? `${API_CONFIG.BASE_URL}/uploads/profile/${user.profile}` : "/images/userProfile.png"} 
+                  alt="user profile"
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div 
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <span className="text-white text-xs font-medium">Upload</span>
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleProfileImageChange}
+                accept="image/*"
+                className="hidden" 
+              />
             </div>
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                {firstName}
+                {user?.names || "Unknown User"}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{bio}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{user?.role || "User"}</p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Umwana Bright Academy</p>
               </div>
@@ -91,9 +161,9 @@ export default function UserMetaCard() {
               size="sm"
               variant="outline"
               className="whitespace-nowrap"
-              onClick={openPasswordModal}
+              onClick={openSignatureModal}
             >
-              Reset Password
+              Manage Signature
             </Button>
           </div>
         </div>
@@ -141,6 +211,7 @@ export default function UserMetaCard() {
                       type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled
                     />
                   </div>
 
@@ -159,6 +230,7 @@ export default function UserMetaCard() {
                       type="text"
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
+                      disabled
                     />
                   </div>
                 </div>
@@ -168,71 +240,22 @@ export default function UserMetaCard() {
               <Button size="sm" variant="outline" onClick={closePersonalModal}>
                 Close
               </Button>
-              <Button size="sm" onClick={handlePersonalInfoSave}>
-                Save Changes
+              <Button size="sm" onClick={handlePersonalInfoSave} disabled={isUploading}>
+                {isUploading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>
         </div>
       </Modal>
 
-      <Modal isOpen={isPasswordModalOpen} onClose={closePasswordModal} className="max-w-[700px] m-4">
-        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Reset Password
-            </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Enter your current password and choose a new one to keep your account secure.
-            </p>
-          </div>
+      <SignatureDialog 
+        isOpen={isSignatureModalOpen} 
+        onClose={closeSignatureModal} 
+        onSave={handleSignatureSave} 
+        isSaving={isUploading} 
+        existingSignature={user?.signature ? `${API_CONFIG.BASE_URL}/uploads/signature/${user.signature}` : undefined}
+      />
 
-          <form className="flex flex-col">
-            <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Current Password</Label>
-                  <Input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                  />
-                </div>
-
-                <div>
-                  <Label>New Password</Label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  <Label>Confirm New Password</Label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closePasswordModal}>
-                Close
-              </Button>
-              <Button size="sm" onClick={handleResetPassword}>
-                Save Changes
-              </Button>
-            </div>
-          </form>
-        </div>
-      </Modal>
     </>
   );
 }

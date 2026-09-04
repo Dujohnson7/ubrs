@@ -4,23 +4,19 @@ import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
-
-type AcademicYear = {
-  id: string;
-  academicYearId: string;
-  fiscalYear: string;
-};
+import { academicYearService, AcademicYearResponseDto, AcademicYearRequestDto, EAcademicState } from "../../services/academicYearService";
+import { toast } from "../../utils/toast";
 
 export default function AcademicYearsEdit() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [item, setItem] = useState<AcademicYear | null>(null);
-  const [academicYearId, setAcademicYearId] = useState("");
+  const [item, setItem] = useState<AcademicYearResponseDto | null>(null);
   const [fiscalYear, setFiscalYear] = useState("");
+  const [eAcademicStatus, setEAcademicStatus] = useState<EAcademicState>("PENDING");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const state = location.state as { item?: AcademicYear } | null;
+    const state = location.state as { item?: AcademicYearResponseDto } | null;
     const stored = state?.item ?? (() => {
       const storedValue = sessionStorage.getItem("academicYearEditItem");
       return storedValue ? JSON.parse(storedValue) : null;
@@ -33,18 +29,34 @@ export default function AcademicYearsEdit() {
 
     sessionStorage.setItem("academicYearEditItem", JSON.stringify(stored));
     setItem(stored);
-    setAcademicYearId(stored.academicYearId);
     setFiscalYear(stored.fiscalYear);
+    setEAcademicStatus(stored.academicYearStatus);
   }, [location.state, navigate]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!item) return;
+
+    if (!fiscalYear.trim()) {
+      toast.error("Fiscal year is required");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const academicYearData: AcademicYearRequestDto = {
+        fiscalYear: fiscalYear.trim(),
+        eAcademicStatus,
+      };
+
+      await academicYearService.updateAcademicYear(item.academicYearId, academicYearData);
       navigate("/academic-years");
-    }, 500);
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,12 +70,21 @@ export default function AcademicYearsEdit() {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Academic Year ID</label>
-                  <div className="p-2 mt-1 rounded bg-gray-50 dark:bg-gray-800 text-sm">{academicYearId}</div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Fiscal Year</label>
+                  <Input value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} placeholder="Enter fiscal year" disabled={loading} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Fiscal Year</label>
-                  <Input value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} placeholder="Enter fiscal year" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Academic Status</label>
+                  <select
+                    className="h-11 rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 w-full"
+                    value={eAcademicStatus}
+                    onChange={(e) => setEAcademicStatus(e.target.value as EAcademicState)}
+                    disabled={loading}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="DONE">Done</option>
+                  </select>
                 </div>
               </div>
 
@@ -71,7 +92,7 @@ export default function AcademicYearsEdit() {
                 <Button size="sm" type="submit" disabled={loading}>
                   {loading ? "Saving..." : "Save Changes"}
                 </Button>
-                <Button size="sm" variant="outline" type="button" onClick={() => navigate("/academic-years")}>Cancel</Button>
+                <Button size="sm" variant="outline" type="button" onClick={() => navigate("/academic-years")} disabled={loading}>Cancel</Button>
               </div>
             </form>
           ) : (

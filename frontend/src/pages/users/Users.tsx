@@ -2,150 +2,155 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-import { userService, User } from "../../services/userService";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import { userService, UsersResponseDto } from "../../services/userService";
+import { toast } from "../../utils/toast";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
-import DatePicker from "../../components/form/date-picker";
-import { PencilIcon, TrashBinIcon, CheckLineIcon, CloseLineIcon } from "../../icons";
+import { PencilIcon, TrashBinIcon } from "../../icons";
 
 const columns = [
   { key: "id", label: "#" },
-  { key: "userName", label: "User Name" },
+  { key: "names", label: "Name" },
   { key: "role", label: "Role" },
   { key: "phone", label: "Phone" },
   { key: "email", label: "Email" },
   { key: "status", label: "Status" },
-  { key: "createdAt", label: "Created" },
   { key: "actions", label: "Actions" },
 ];
 
-const sampleUsers: User[] = [
-  {
-    id: "1",
-    userName: "Alice Uwimana",
-    role: "Header Teacher",
-    phone: "+250788111222",
-    email: "alice.uwimana@school.com",
-    password: "Pass@123",
-    status: "Active",
-    isFirstTime: false,
-    createdAt: "2026-07-22T08:00:00.000Z",
-  },
-  {
-    id: "2",
-    userName: "Brian Mukamana",
-    role: "Class Teacher",
-    phone: "+250788333444",
-    email: "brian.mukamana@school.com",
-    password: "Teach2026",
-    status: "Inactive",
-    isFirstTime: true,
-    createdAt: "2026-07-20T11:30:00.000Z",
-  },
-  {
-    id: "3",
-    userName: "Clara Nyirahabimana",
-    role: "Teacher",
-    phone: "+250782555666",
-    email: "clara.nyirahabimana@school.com",
-    password: "School@2026",
-    status: "Active",
-    isFirstTime: false,
-    createdAt: "2026-07-18T14:45:00.000Z",
-  },
-  {
-    id: "4",
-    userName: "David Nshimiyimana",
-    role: "Parent",
-    phone: "+250788777888",
-    email: "david.nshimiyimana@example.com",
-    password: "ParentPass#1",
-    status: "Inactive",
-    isFirstTime: false,
-    createdAt: "2026-07-19T09:20:00.000Z",
-  },
-];
-
 export default function Users() {
-  const [users, setUsers] = useState<User[]>(sampleUsers);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<UsersResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false);
+  const [userToChangePassword, setUserToChangePassword] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-
-    userService
-      .getUsers()
-      .then((data) => {
-        if (mounted) {
-          setUsers(data.length ? data : sampleUsers);
-        }
-      })
-      .catch((err) => {
-        if (mounted) {
-          setError(err.message || "Unable to load users.");
-          setUsers(sampleUsers);
-        }
-      })
-      .finally(() => {
-        if (mounted) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        const data = await userService.getAllUsers();
+        setUsers(data);
+      } catch (err) {
+        // Error is handled by toast in service
+      } finally {
+        setLoading(false);
+      }
     };
+
+    loadUsers();
   }, []);
+
+  const handleActivate = async (userId: string) => {
+    try {
+      await userService.activateUser(userId);
+      setUsers((current) =>
+        current.map((item) =>
+          item.userId === userId ? { ...item, userStatus: true } : item
+        )
+      );
+    } catch (err) {
+      // Error is handled by toast in service
+    }
+  };
+
+  const handleSuspend = async (userId: string) => {
+    try {
+      await userService.suspendUser(userId);
+      setUsers((current) =>
+        current.map((item) =>
+          item.userId === userId ? { ...item, userStatus: false } : item
+        )
+      );
+    } catch (err) {
+      // Error is handled by toast in service
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    setUserToDelete(userId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      await userService.deleteUser(userToDelete);
+      setUsers((current) => current.filter((item) => item.userId !== userToDelete));
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleChangePassword = (userId: string) => {
+    setUserToChangePassword(userId);
+    setNewPassword("");
+    setChangePasswordDialogOpen(true);
+  };
+
+  const confirmChangePassword = async () => {
+    if (!userToChangePassword || !newPassword.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+
+    try {
+      await userService.changePassword(userToChangePassword, newPassword.trim());
+      setChangePasswordDialogOpen(false);
+      setUserToChangePassword(null);
+      setNewPassword("");
+    } catch (err) {
+      // Error is handled by toast in service
+    }
+  };
+
+  const cancelChangePassword = () => {
+    setChangePasswordDialogOpen(false);
+    setUserToChangePassword(null);
+    setNewPassword("");
+  };
 
   const filteredUsers = useMemo(() => {
     const lowerQuery = search.toLowerCase();
 
     return users.filter((user) => {
-      const created = new Date(user.createdAt);
-      if (fromDate && created < new Date(fromDate)) return false;
-      if (toDate && created > new Date(toDate)) return false;
-
       if (roleFilter !== "All Roles" && user.role !== roleFilter) return false;
 
-      if (!lowerQuery) return true;
-      return [user.userName, user.role, user.email, user.phone, user.status]
+      const matchesStatus = statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && user.userStatus) ||
+        (statusFilter === "INACTIVE" && !user.userStatus);
+
+      if (!lowerQuery) return matchesStatus;
+      const matchesSearch = [user.names, user.role, user.email, user.phone]
         .join(" ")
         .toLowerCase()
         .includes(lowerQuery);
+      return matchesSearch && matchesStatus;
     });
-  }, [users, search, fromDate, toDate, roleFilter]);
+  }, [users, search, roleFilter, statusFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const handleDelete = (id: string) => {
-    setUsers((current) => current.filter((user) => user.id !== id));
-  };
-
-  const toggleStatus = (id: string) => {
-    setUsers((current) =>
-      current.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              status: user.status === "Active" ? "Inactive" : "Active",
-            }
-          : user
-      )
-    );
-  };
 
   return (
     <>
@@ -154,42 +159,16 @@ export default function Users() {
       <div className="space-y-6">
         <ComponentCard title="Users" titleClassName="text-xl sm:text-2xl">
           <div className="rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr_auto] xl:grid-cols-[2.5fr_1fr_1fr_1fr_auto] items-end">
+            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_auto] xl:grid-cols-[2.5fr_1fr_1fr_auto] items-end">
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">
                   Search Entries
                 </label>
                 <Input
-                  placeholder="Search by user name..."
+                  placeholder="Search by name..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
-
-              <div>
-                <DatePicker
-                  id="fromDate"
-                  label="From Date"
-                  placeholder="Select start date"
-                  defaultDate={fromDate || undefined}
-                  onChange={(selectedDates) => {
-                    setFromDate(selectedDates.length ? selectedDates[0].toISOString().split("T")[0] : "");
-                    setPage(1);
-                  }}
-                />
-              </div>
-
-              <div>
-                <DatePicker
-                  id="toDate"
-                  label="To Date"
-                  placeholder="Select end date"
-                  defaultDate={toDate || undefined}
-                  onChange={(selectedDates) => {
-                    setToDate(selectedDates.length ? selectedDates[0].toISOString().split("T")[0] : "");
                     setPage(1);
                   }}
                 />
@@ -208,10 +187,28 @@ export default function Users() {
                   }}
                 >
                   <option>All Roles</option>
-                  <option>Header Teacher</option>
-                  <option>Class Teacher</option>
-                  <option>Teacher</option>
-                  <option>Parent</option>
+                  <option>HEADERTEACHER</option>
+                  <option>CLASSTEACHER</option>
+                  <option>TEACHER</option>
+                  <option>PARENT</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">
+                  Status
+                </label>
+                <select
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE");
+                    setPage(1);
+                  }}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
                 </select>
               </div>
 
@@ -228,9 +225,9 @@ export default function Users() {
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 Loading users...
               </div>
-            ) : error ? (
-              <div className="p-8 text-center text-red-500 dark:text-red-400">
-                {error}
+            ) : paginatedUsers.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                No users found
               </div>
             ) : (
               <>
@@ -250,13 +247,13 @@ export default function Users() {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                      {paginatedUsers.map((user) => (
-                        <TableRow key={user.id}>
+                      {paginatedUsers.map((user, index) => (
+                        <TableRow key={user.userId}>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                            {user.id}
+                            {(currentPage - 1) * pageSize + index + 1}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                            {user.userName}
+                            {user.names}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                             {user.role}
@@ -268,15 +265,47 @@ export default function Users() {
                             {user.email}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${user.status === "Active" ? "bg-success-100 text-success-700 dark:bg-success-500/15 dark:text-success-400" : "bg-error-100 text-error-700 dark:bg-error-500/15 dark:text-error-400"}`}>
-                              {user.status ?? (user.isFirstTime ? "First Time" : "Returning")}
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                              user.userStatus ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                              {user.userStatus ? 'Active' : 'Inactive'}
                             </span>
                           </TableCell>
-                          <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                            {new Date(user.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                              <div className="flex flex-wrap gap-2">
+                          <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                              <div className="flex flex-wrap gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleActivate(user.userId)}
+                                disabled={user.userStatus || loading}
+                                title="Activate"
+                                ariaLabel="Activate"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-green-100/20 !text-green-600 hover:!bg-green-200"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSuspend(user.userId)}
+                                disabled={!user.userStatus || loading}
+                                title="Suspend"
+                                ariaLabel="Suspend"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-red-100/20 !text-red-600 hover:!bg-red-200"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleChangePassword(user.userId)}
+                                title="Change Password"
+                                ariaLabel="Change Password"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-blue-100/20 !text-blue-600 hover:!bg-blue-200"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -293,19 +322,10 @@ export default function Users() {
                                 size="sm"
                                 variant="outline"
                                 startIcon={<TrashBinIcon className="size-4" />}
-                                onClick={() => handleDelete(user.id)}
+                                onClick={() => handleDelete(user.userId)}
                                 title="Delete"
                                 ariaLabel="Delete"
                                 className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                startIcon={user.status === "Active" ? <CloseLineIcon className="size-4" /> : <CheckLineIcon className="size-4" />}
-                                onClick={() => toggleStatus(user.id)}
-                                title={user.status === "Active" ? "Deactivate" : "Activate"}
-                                ariaLabel={user.status === "Active" ? "Deactivate" : "Activate"}
-                                className={`!px-3 !py-3 !min-w-0 rounded-full ${user.status === "Active" ? "!bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" : "!bg-success-100/20 !text-success-600 hover:!bg-success-200"}`}
                               />
                             </div>
                           </TableCell>
@@ -363,6 +383,37 @@ export default function Users() {
           </div>
         </ComponentCard>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
+      <ConfirmDialog
+        isOpen={changePasswordDialogOpen}
+        title="Change Password"
+        message={
+          <div className="space-y-4">
+            <p>Enter the new password for this user:</p>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              autoFocus
+            />
+          </div>
+        }
+        onConfirm={confirmChangePassword}
+        onCancel={cancelChangePassword}
+        confirmText="Change Password"
+        cancelText="Cancel"
+      />
     </>
   );
 }

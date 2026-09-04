@@ -1,49 +1,79 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import { schoolClassService, SchoolClassResponseDto, ESchoolLevel } from "../../services/schoolClassService";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
 
-const sampleClasses = [
-  {
-    id: "1",
-    classId: "C101",
-    name: "Blue House",
-    classLevel: "Primary",
-    classTeacher: "Ms. Grace",
-  },
-  {
-    id: "2",
-    classId: "C102",
-    name: "Green House",
-    classLevel: "Nursery",
-    classTeacher: "Mr. John",
-  },
-];
-
 export default function Classes() {
-  const [classes, setClasses] = useState(sampleClasses);
+  const [classes, setClasses] = useState<SchoolClassResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [levelFilter, setLevelFilter] = useState("All Levels");
+  const [levelFilter, setLevelFilter] = useState<"ALL" | "PRIMARY" | "NURSERY">("ALL");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    setClasses((current) => current.filter((item) => item.id !== id));
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        setLoading(true);
+        let data;
+        if (levelFilter === "PRIMARY") {
+          data = await schoolClassService.getPrimaryClasses();
+        } else if (levelFilter === "NURSERY") {
+          data = await schoolClassService.getNurseryClasses();
+        } else {
+          data = await schoolClassService.getAllSchoolClasses();
+        }
+        setClasses(data);
+      } catch (err) {
+        // Error is handled by toast in service
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClasses();
+  }, [levelFilter]);
+
+  const handleDelete = (classId: string) => {
+    setClassToDelete(classId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!classToDelete) return;
+
+    try {
+      await schoolClassService.deleteSchoolClass(classToDelete);
+      setClasses((current) => current.filter((item) => item.schoolClassId !== classToDelete));
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setDeleteDialogOpen(false);
+      setClassToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setClassToDelete(null);
   };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return classes.filter((c) => {
-      if (levelFilter !== "All Levels" && c.classLevel !== levelFilter) return false;
       if (!q) return true;
-      return [c.classId, c.name, c.classTeacher, c.classLevel].join(" ").toLowerCase().includes(q);
+      return [c.name, c.classLevel, c.classTeacherName].join(" ").toLowerCase().includes(q);
     });
-  }, [classes, search, levelFilter]);
+  }, [classes, search]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -64,10 +94,10 @@ export default function Classes() {
 
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Level</label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={levelFilter} onChange={(e) => { setLevelFilter(e.target.value); setPage(1); }}>
-                  <option>All Levels</option>
-                  <option>Primary</option>
-                  <option>Nursery</option>
+                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={levelFilter} onChange={(e) => { setLevelFilter(e.target.value as "ALL" | "PRIMARY" | "NURSERY"); setPage(1); }}>
+                  <option value="ALL">All Levels</option>
+                  <option value="PRIMARY">Primary</option>
+                  <option value="NURSERY">Nursery</option>
                 </select>
               </div>
 
@@ -85,25 +115,23 @@ export default function Classes() {
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">#</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class ID</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Name</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Level</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class Teacher</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginated.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.id}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classId}</TableCell>
+                  {paginated.map((item, index) => (
+                    <TableRow key={item.schoolClassId}>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{(currentPage - 1) * pageSize + index + 1}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.name}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classLevel}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classTeacher}</TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classTeacherName || "-"}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("classEditItem", JSON.stringify(item)); navigate("/classes/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.id)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.schoolClassId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -133,6 +161,16 @@ export default function Classes() {
           </div>
         </ComponentCard>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        title="Delete Class"
+        message="Are you sure you want to delete this class? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </>
   );
 }

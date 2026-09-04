@@ -165,7 +165,7 @@ export default function RecentOrders() {
                 <TableRow
                   key={mark.id}
                   className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
-                  onClick={() => navigate(`/marks-approval/${mark.classId}`)}
+                  onClick={() => navigate(`/marks-approval/details`, { state: { classId: mark.classId, className: mark.className } })}
                 >
                   <TableCell className="py-3 px-3">
                     <div className="flex items-center gap-2">

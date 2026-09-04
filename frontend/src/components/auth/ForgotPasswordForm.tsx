@@ -1,24 +1,39 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ChevronLeftIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
+import { authService } from "../../services/authService";
 
 type Status = "idle" | "loading" | "sent" | "error";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    setErrorMsg("");
+    if (!email) {
+      setErrorMsg("Please enter an email");
+      return;
+    }
 
     setStatus("loading");
-    // TODO: call your real password-reset API here
-    await new Promise((r) => setTimeout(r, 1200)); // simulate network
-    setStatus("sent");
+    try {
+      await authService.forgotPassword(email);
+      setStatus("sent");
+      setTimeout(() => {
+        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+      }, 2000);
+    } catch (error: any) {
+      setStatus("error");
+      setErrorMsg(error.message || "Failed to process request");
+    }
   };
 
   return (
@@ -63,18 +78,9 @@ export default function ForgotPasswordForm() {
                 <span className="font-medium text-gray-800 dark:text-white/90">
                   {email}
                 </span>
-                . It expires in 30 minutes.
+                . Please wait, redirecting...
               </p>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Didn't receive it?{" "}
-              <button
-                onClick={() => setStatus("idle")}
-                className="text-brand-500 hover:text-brand-600 dark:text-brand-400 font-medium"
-              >
-                Resend email
-              </button>
-            </p>
           </div>
         ) : (
           /* ── Form state ── */
@@ -103,6 +109,10 @@ export default function ForgotPasswordForm() {
                     required
                   />
                 </div>
+
+                {errorMsg && (
+                  <p className="text-sm text-error-500 -mt-2">{errorMsg}</p>
+                )}
 
                 <Button
                   className="w-full"

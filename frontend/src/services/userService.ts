@@ -1,42 +1,30 @@
-export interface User {
-  id: string;
-  userName: string;
-  role: string;
+import { getApiUrl } from "../config/api";
+import { toast } from "../utils/toast";
+
+export type ERole = "HEADERTEACHER" | "CLASSTEACHER" | "TEACHER" | "PARENT";
+
+export interface UsersRequestDto {
+  profile?: string;
+  names: string;
   phone: string;
   email: string;
-  password: string;
-  status?: string;
+  password?: string;
+  role: ERole;
+  signature?: string;
+  userStatus: boolean;
   isFirstTime: boolean;
-  createdAt: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
-
-async function getUsers(): Promise<User[]> {
-  const response = await fetch(`${API_BASE}/users`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Failed to load users");
-  }
-
-  const rawText = await response.text();
-
-  if (rawText.trim().startsWith("<")) {
-    console.warn("Non-JSON response received from /users endpoint, falling back to sample data.");
-    return [];
-  }
-
-  try {
-    return JSON.parse(rawText) as User[];
-  } catch (_error) {
-    console.warn("Unable to parse JSON from /users endpoint, falling back to sample data.");
-    return [];
-  }
+export interface UsersResponseDto {
+  userId: string;
+  profile?: string;
+  names: string;
+  phone: string;
+  email: string;
+  role: ERole;
+  signature?: string;
+  userStatus: boolean;
+  isFirstTime: boolean;
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
@@ -53,26 +41,57 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
   }
 }
 
-async function getUserById(id: string): Promise<User> {
-  const response = await fetch(`${API_BASE}/users/${id}`, {
+async function getAllUsers(): Promise<UsersResponseDto[]> {
+  const response = await fetch(getApiUrl("/api/userManagement/all"), {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
   if (!response.ok) {
-    const rawText = await response.text();
-    const message = rawText.trim().startsWith("<")
-      ? "Unexpected non-JSON response from the server. Please check your API URL or backend."
-      : rawText;
+    const message = await response.text();
+    toast.error(message || "Failed to load users");
+    throw new Error(message || "Failed to load users");
+  }
+
+  return parseJsonResponse<UsersResponseDto[]>(response, "Unable to parse users data from server.");
+}
+
+async function getAllTeachers(): Promise<UsersResponseDto[]> {
+  const response = await fetch(getApiUrl("/api/userManagement/teachers"), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load teachers");
+    throw new Error(message || "Failed to load teachers");
+  }
+
+  return parseJsonResponse<UsersResponseDto[]>(response, "Unable to parse teachers data from server.");
+}
+
+
+async function getUserById(userId: string): Promise<UsersResponseDto> {
+  const response = await fetch(getApiUrl(`/api/userManagement/${userId}`), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load user");
     throw new Error(message || "Failed to load user");
   }
 
-  return parseJsonResponse<User>(response, "Unable to parse user data from server.");
+  return parseJsonResponse<UsersResponseDto>(response, "Unable to parse user data from server.");
 }
 
-async function createUser(user: Omit<User, "id">): Promise<User> {
-  const response = await fetch(`${API_BASE}/users`, {
+async function registerUser(user: UsersRequestDto): Promise<UsersResponseDto> {
+  const response = await fetch(getApiUrl("/api/userManagement/register"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -81,18 +100,17 @@ async function createUser(user: Omit<User, "id">): Promise<User> {
   });
 
   if (!response.ok) {
-    const rawText = await response.text();
-    const message = rawText.trim().startsWith("<")
-      ? "Unexpected non-JSON response from the server. Please check your API URL or backend."
-      : rawText;
+    const message = await response.text();
+    toast.error(message || "Failed to create user");
     throw new Error(message || "Failed to create user");
   }
 
-  return parseJsonResponse<User>(response, "Unable to parse create user response.");
+  toast.success("User created successfully");
+  return parseJsonResponse<UsersResponseDto>(response, "Unable to parse create user response.");
 }
 
-async function updateUser(id: string, user: Partial<User>): Promise<User> {
-  const response = await fetch(`${API_BASE}/users/${id}`, {
+async function updateUser(userId: string, user: UsersRequestDto): Promise<UsersResponseDto> {
+  const response = await fetch(getApiUrl(`/api/userManagement/update/${userId}`), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -101,19 +119,92 @@ async function updateUser(id: string, user: Partial<User>): Promise<User> {
   });
 
   if (!response.ok) {
-    const rawText = await response.text();
-    const message = rawText.trim().startsWith("<")
-      ? "Unexpected non-JSON response from the server. Please check your API URL or backend."
-      : rawText;
+    const message = await response.text();
+    toast.error(message || "Failed to update user");
     throw new Error(message || "Failed to update user");
   }
 
-  return parseJsonResponse<User>(response, "Unable to parse update user response.");
+  toast.success("User updated successfully");
+  return parseJsonResponse<UsersResponseDto>(response, "Unable to parse update user response.");
+}
+
+async function changePassword(userId: string, password: string): Promise<UsersResponseDto> {
+  const response = await fetch(getApiUrl(`/api/userManagement/changePassword/${userId}?password=${encodeURIComponent(password)}`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to change password");
+    throw new Error(message || "Failed to change password");
+  }
+
+  toast.success("Password changed successfully");
+  return parseJsonResponse<UsersResponseDto>(response, "Unable to parse change password response.");
+}
+
+async function activateUser(userId: string): Promise<void> {
+  const response = await fetch(getApiUrl(`/api/userManagement/activate/${userId}`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to activate user");
+    throw new Error(message || "Failed to activate user");
+  }
+
+  toast.success("User activated successfully");
+}
+
+async function suspendUser(userId: string): Promise<void> {
+  const response = await fetch(getApiUrl(`/api/userManagement/suspend/${userId}`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to suspend user");
+    throw new Error(message || "Failed to suspend user");
+  }
+
+  toast.success("User suspended successfully");
+}
+
+async function deleteUser(userId: string): Promise<void> {
+  const response = await fetch(getApiUrl(`/api/userManagement/delete/${userId}`), {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to delete user");
+    throw new Error(message || "Failed to delete user");
+  }
+
+  toast.success("User deleted successfully");
 }
 
 export const userService = {
-  getUsers,
+  getAllUsers,
+  getAllTeachers,
   getUserById,
-  createUser,
+  registerUser,
   updateUser,
+  changePassword,
+  activateUser,
+  suspendUser,
+  deleteUser,
 };

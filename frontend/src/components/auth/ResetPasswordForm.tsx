@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
+import { authService } from "../../services/authService";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -44,6 +45,10 @@ function StrengthBar({ password }: { password: string }) {
 
 export default function ResetPasswordForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const emailParam = searchParams.get("email") || "";
+  const otpParam = searchParams.get("otp") || "";
+
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -63,14 +68,21 @@ export default function ResetPasswordForm() {
       setError("Password must be at least 8 characters.");
       return;
     }
-    setError("");
+    if (!emailParam || !otpParam) {
+      setError("Missing email or OTP. Please try resetting your password again.");
+      return;
+    }
+
     setStatus("loading");
 
-    // TODO: extract token from URL params and call your real reset-password API
-    await new Promise((r) => setTimeout(r, 1200)); // simulate network
-    setStatus("success");
-
-    setTimeout(() => navigate("/signin"), 2500);
+    try {
+      await authService.resetPassword(emailParam, otpParam, password);
+      setStatus("success");
+      setTimeout(() => navigate("/signin"), 2500);
+    } catch (error: any) {
+      setStatus("error");
+      setError(error.message || "An error occurred");
+    }
   };
 
   return (

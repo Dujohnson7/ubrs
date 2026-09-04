@@ -4,41 +4,52 @@ import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
-import { userService } from "../../services/userService";
+import { userService, UsersRequestDto, ERole } from "../../services/userService";
+import { toast } from "../../utils/toast";
 
 export default function UsersCreate() {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState("");
-  const [role, setRole] = useState("");
+  const [names, setNames] = useState("");
+  const [role, setRole] = useState<ERole>("TEACHER");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [password, setPassword] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isFirstTime, setIsFirstTime] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [createdAt, setCreatedAt] = useState(new Date().toISOString());
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
+    if (!names.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    if (!role) {
+      toast.error("Role is required");
+      return;
+    }
+    if (!phone.trim()) {
+      toast.error("Phone is required");
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await userService.createUser({
-        userName,
+      const userData: UsersRequestDto = {
+        names: names.trim(),
         role,
-        phone,
-        email,
-        password,
-        isFirstTime,
-        createdAt,
-      });
+        phone: phone.trim(),
+        email: email.trim(),
+        userStatus: true,
+        isFirstTime: true,
+      };
+
+      await userService.registerUser(userData);
       navigate("/users");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unable to create user.");
+    } catch (err) {
+      // Error is handled by toast in service
     } finally {
       setLoading(false);
     }
@@ -57,21 +68,19 @@ export default function UsersCreate() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">User Name</label>
-                <Input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Enter name" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Name</label>
+                <Input value={names} onChange={(e) => setNames(e.target.value)} placeholder="Enter name" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Role</label>
                 <select
                   className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={(e) => setRole(e.target.value as ERole)}
                 >
-                  <option value="">Select role</option>
-                  <option value="Header Teacher">Header Teacher</option>
-                  <option value="Class Teacher">Class Teacher</option>
-                  <option value="Teacher">Teacher</option>
-                  <option value="Parent">Parent</option>
+                  <option value="HEADERTEACHER">Header Teacher</option> 
+                  <option value="TEACHER">Teacher</option>
+                  <option value="PARENT">Parent</option>
                 </select>
               </div>
               <div>
@@ -81,21 +90,15 @@ export default function UsersCreate() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Email</label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" />
-              </div> 
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              
-              <div className="flex gap-3">
-                <Button size="sm" type="submit" disabled={loading}>
-                  {loading ? "Creating..." : "Create User"}
-                </Button>
-                <Button size="sm" variant="outline" type="button" onClick={() => navigate("/users")}>Cancel</Button>
-                
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            <div className="flex gap-3">
+              <Button size="sm" type="submit" disabled={loading}>
+                {loading ? "Creating..." : "Create User"}
+              </Button>
+              <Button size="sm" variant="outline" type="button" onClick={() => navigate("/users")}>Cancel</Button>
+            </div>
           </form>
         </ComponentCard>
       </div>

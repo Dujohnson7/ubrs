@@ -1,5 +1,22 @@
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "submitted";
 
+/** Map backend EGradeState (DRAFT/SUBMITTED/…) or UI lowercase values to ApprovalStatus */
+export function normalizeApprovalStatus(status?: string | null): ApprovalStatus {
+  const key = (status ?? "").toString().trim().toUpperCase();
+  switch (key) {
+    case "SUBMITTED":
+      return "submitted";
+    case "APPROVED":
+      return "approved";
+    case "REJECTED":
+      return "rejected";
+    case "DRAFT":
+    case "PENDING":
+    default:
+      return "pending";
+  }
+}
+
 export interface StudentMark {
   studentCode: string;
   studentName: string;

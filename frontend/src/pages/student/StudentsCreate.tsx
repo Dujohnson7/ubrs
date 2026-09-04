@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -6,6 +6,9 @@ import PageMeta from "../../components/common/PageMeta";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
+import { studentService, StudentRequestDto, EGender, EStudentState } from "../../services/studentService";
+import { schoolClassService } from "../../services/schoolClassService";
+import { toast } from "../../utils/toast";
 
 export default function StudentsCreate() {
   const navigate = useNavigate();
@@ -13,25 +16,71 @@ export default function StudentsCreate() {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [gender, setGender] = useState("Male");
-  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState<EGender>("MALE");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [fatherName, setFatherName] = useState("");
   const [fatherPhone, setFatherPhone] = useState("");
   const [motherName, setMotherName] = useState("");
   const [motherPhone, setMotherPhone] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [guardianPhone, setGuardianPhone] = useState("");
-  const [studentStatus, setStudentStatus] = useState("Active");
-  const [classId, setClassId] = useState("");
+  const [studentStatus, setStudentStatus] = useState<EStudentState>("ACTIVE");
+  const [schoolClassId, setSchoolClassId] = useState("");
+  const [classes, setClasses] = useState<import("../../services/schoolClassService").SchoolClassResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        const data = await schoolClassService.getAllSchoolClasses();
+        setClasses(data);
+      } catch (err) {
+        // Error is handled by toast in service
+      }
+    };
+
+    loadClasses();
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!studentCode.trim() || !firstName.trim() || !lastName.trim()) {
+      toast.error("Student code, first name, and last name are required");
+      return;
+    }
+
+    if (!schoolClassId) {
+      toast.error("Class is required");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const studentData: StudentRequestDto = {
+        studentCode: studentCode.trim(),
+        firstName: firstName.trim(),
+        middleName: middleName.trim() || undefined,
+        lastName: lastName.trim(),
+        gender,
+        dateOfBirth,
+        fatherName: fatherName.trim(),
+        fatherPhone: fatherPhone.trim(),
+        motherName: motherName.trim(),
+        motherPhone: motherPhone.trim(),
+        guardianName: guardianName.trim() || undefined,
+        guardianPhone: guardianPhone.trim() || undefined,
+        studentStatus,
+        schoolClassId,
+      };
+
+      await studentService.registerStudent(studentData);
       navigate("/students");
-    }, 500);
+    } catch (err) {
+      // Error is handled by toast in service
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,15 +115,15 @@ export default function StudentsCreate() {
                 <select
                   className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                   value={gender}
-                  onChange={(e) => setGender(e.target.value)}
+                  onChange={(e) => setGender(e.target.value as EGender)}
                 >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
                 </select>
               </div>
               <div>
                 <Label>Date of Birth</Label>
-                <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                <Input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
               </div>
               <div>
                 <Label>Father Name</Label>
@@ -105,18 +154,21 @@ export default function StudentsCreate() {
                 <select
                   className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                   value={studentStatus}
-                  onChange={(e) => setStudentStatus(e.target.value)}
+                  onChange={(e) => setStudentStatus(e.target.value as EStudentState)}
                 >
-                  <option value="Active">Active</option>
-                  <option value="Fired">Fired</option>
-                  <option value="Transfer">Transfer</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="GRADUATED">Graduated</option>
+                  <option value="SUSPENDED">Suspended</option>
                 </select>
               </div>
               <div>
-                <Label>Class ID</Label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={classId} onChange={(e) => setClassId(e.target.value)}>
+                <Label>Class</Label>
+                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={schoolClassId} onChange={(e) => setSchoolClassId(e.target.value)}>
                   <option value="">Select class</option>
-                  <option value="CL1001">CL1001</option>
+                  {classes.map((cls) => (
+                    <option key={cls.schoolClassId} value={cls.schoolClassId}>{cls.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
