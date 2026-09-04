@@ -1,4 +1,4 @@
-﻿# render.yaml - Render Blueprint for UBRS
+# render.yaml - Render Blueprint for UBRS
 # This file defines the infrastructure for the UBRS application.
 # Connect this repo to Render and it will auto-detect this blueprint.
 
@@ -15,9 +15,9 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        value: jdbc:postgresql://db.mwrnviqtgzstehoentgi.supabase.co:5432/postgres?sslmode=require
+        value: jdbc:postgresql://aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require
       - key: DATABASE_USERNAME
-        value: postgres
+        value: postgres.mwrnviqtgzstehoentgi
       - key: DATABASE_PASSWORD
         value: JW0Cejky6NQZ4MFf
       - key: CORS_ALLOWED_ORIGINS
