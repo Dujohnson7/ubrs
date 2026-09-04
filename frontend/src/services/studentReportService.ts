@@ -38,6 +38,48 @@ async function getStudentGradeReport(
   return parseJsonResponse<GradeReportProjection[]>(response, "Unable to parse student grade report.");
 }
 
+async function getStudentGradeReportByClassTeacher(
+  teacherId: string,
+  academicYearId: string
+): Promise<GradeReportProjection[]> {
+  const params = new URLSearchParams({ academicYearId });
+  const response = await fetch(getApiUrl(`/api/studentReport/classTeacher/grade-report/${teacherId}?${params.toString()}`));
+  if (!response.ok) {
+    throw new Error("Failed to load class teacher student grade report");
+  }
+  return parseJsonResponse<GradeReportProjection[]>(response, "Unable to parse student grade report.");
+}
+
+async function getStudentGradeReportByTerm(
+  academicYearId: string,
+  schoolClassId: string,
+  term: string
+): Promise<GradeReportProjection[]> {
+  const params = new URLSearchParams({ academicYearId, schoolClassId, term });
+  const response = await fetch(getApiUrl(`/api/studentReport/term/grade-report?${params.toString()}`));
+  if (!response.ok) {
+    throw new Error("Failed to load term student grade report");
+  }
+  return parseJsonResponse<GradeReportProjection[]>(response, "Unable to parse term student grade report.");
+}
+
+async function getStudentGradeReportByParent(
+  parentId: string,
+  academicYearId: string,
+  term?: string
+): Promise<GradeReportProjection[]> {
+  const params = new URLSearchParams({ parentId, academicYearId });
+  if (term) params.set("term", term);
+  const response = await fetch(getApiUrl(`/api/studentReport/parent/grade-report?${params.toString()}`));
+  if (!response.ok) {
+    throw new Error("Failed to load parent student grade report");
+  }
+  return parseJsonResponse<GradeReportProjection[]>(response, "Unable to parse parent student grade report.");
+}
+
 export const studentReportService = {
   getStudentGradeReport,
+  getStudentGradeReportByClassTeacher,
+  getStudentGradeReportByTerm,
+  getStudentGradeReportByParent,
 };

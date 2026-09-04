@@ -36,6 +36,8 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
 
     List<Grade> findAllByAcademicYear_IdAndSchoolClass_IdAndIsDeleted(UUID academicYearId, UUID schoolClassId, Boolean isDeleted);
 
+    List<Grade> findAllByTeacher_IdAndIsDeleted(UUID teacherId, Boolean isDeleted);
+
     long countAllBySubmitStatusAndIsDeleted(EGradeState submitStatus, Boolean isDeleted);
 
     @Query("""
@@ -188,4 +190,56 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
     );
 
     List<Grade> findAllByAcademicYear_IdAndTermAndSchoolClass_IdAndCourse_IdAndIsDeleted(UUID academicYearId, ETerm term, UUID schoolClassId, UUID courseId, Boolean isDeleted);
+
+    @Query("""
+    SELECT
+        c.courseName AS subject,
+        sc.classLevel AS level,
+        AVG(gd.mark) AS averageMark
+    FROM Grade g
+    JOIN g.gradeDetails gd
+    JOIN g.course c
+    JOIN g.schoolClass sc
+    WHERE g.isDeleted = false
+      AND g.submitStatus = com.ubrs.ubrs_backend.util.EGradeState.APPROVED
+      AND g.academicYear.id = :academicYearId
+    GROUP BY c.courseName, sc.classLevel
+    ORDER BY c.courseName
+    """)
+    List<Object[]> findAverageMarksBySubject(@Param("academicYearId") UUID academicYearId);
+
+    @Query("""
+    SELECT
+        g.academicYear.fiscalYear AS academicYear,
+        g.term AS term,
+        g.submitStatus AS status,
+        COUNT(DISTINCT g.course.id) AS count
+    FROM Grade g
+    WHERE g.isDeleted = false
+    GROUP BY g.academicYear.fiscalYear, g.term, g.submitStatus
+    ORDER BY g.academicYear.fiscalYear DESC, g.term
+    """)
+    List<Object[]> findMarksSubmissionTrends();
+
+    @Query("""
+    SELECT
+        sc.name AS className,
+        SUM(CASE WHEN gd.mark >= 80 THEN 1 ELSE 0 END) AS a1,
+        SUM(CASE WHEN gd.mark >= 70 AND gd.mark < 80 THEN 1 ELSE 0 END) AS b2,
+        SUM(CASE WHEN gd.mark >= 60 AND gd.mark < 70 THEN 1 ELSE 0 END) AS b3,
+        SUM(CASE WHEN gd.mark >= 50 AND gd.mark < 60 THEN 1 ELSE 0 END) AS c4,
+        SUM(CASE WHEN gd.mark < 50 THEN 1 ELSE 0 END) AS d,
+        COUNT(gd.id) AS total
+    FROM Grade g
+    JOIN g.gradeDetails gd
+    JOIN g.schoolClass sc
+    WHERE g.isDeleted = false
+      AND g.submitStatus = com.ubrs.ubrs_backend.util.EGradeState.APPROVED
+      AND g.academicYear.id = :academicYearId
+    GROUP BY sc.name
+    ORDER BY sc.name
+    """)
+    List<Object[]> findGradeDistribution(@Param("academicYearId") UUID academicYearId);
+
+
 }

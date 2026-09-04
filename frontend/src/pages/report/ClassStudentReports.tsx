@@ -21,6 +21,8 @@ import { studentReportService } from "../../services/studentReportService";
 import { schoolClassService } from "../../services/schoolClassService";
 import { academicYearService } from "../../services/academicYearService";
 import { loadReportSignatories } from "./reportSignatures";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 const gradeColor = (pct: number) => {
   if (pct >= 80) return { bg: "#dcfce7", text: "#16a34a" };
@@ -84,6 +86,8 @@ function ReportModal({ student, onClose, onPrint }: ReportModalProps) {
 }
 
 export default function ClassStudentReports() {
+  const { user } = useAuth();
+  const isClassTeacher = user?.role === ERole.CLASSTEACHER;
   const { classId } = useParams<{ classId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -157,7 +161,9 @@ export default function ClassStudentReports() {
         };
         setClassData(info);
 
-        const rows = await studentReportService.getStudentGradeReport(academicYearId, classId);
+        const rows = (isClassTeacher && user?.userId)
+          ? await studentReportService.getStudentGradeReportByClassTeacher(user.userId, academicYearId)
+          : await studentReportService.getStudentGradeReport(academicYearId, classId);
         const reports = buildStudentReportsFromGrades(info, rows, term);
         setStudents(reports);
         setClassData({ ...info, studentCount: reports.length });

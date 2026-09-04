@@ -17,6 +17,8 @@ public interface ICourseAssignmentRepository  extends JpaRepository<CourseAssign
 
     List<CourseAssignment> findAllByIsDeleted(Boolean isDeleted);
 
+    List<CourseAssignment> findAllByTeacher_IdAndIsDeleted(UUID teacherId, Boolean isDeleted);
+
     List<CourseAssignment> findAllByAssignmentStatusAndIsDeleted(EAssignmentState assignmentStatus, Boolean isDeleted);
 
     List<CourseAssignment> findAllByTeacherIdAndIsDeleted(UUID teacherId, Boolean isDeleted);

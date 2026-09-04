@@ -5,10 +5,7 @@ import com.ubrs.ubrs_backend.service.studentReport.IStudentReportService;
 import com.ubrs.ubrs_backend.util.ETerm;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +24,16 @@ public class StudentReportController {
     ) {
         return ResponseEntity.ok(studentReportService.getStudentGradeReport(academicYearId, schoolClassId));
     }
+
+
+    @GetMapping("/classTeacher/grade-report/{teacherId}")
+    public ResponseEntity<List<GradeReportProjection>> getStudentGradeReportByClassTeacher(
+            @PathVariable UUID teacherId,
+            @RequestParam UUID academicYearId
+    ) {
+        return ResponseEntity.ok(studentReportService.getStudentGradeReportByClassTeacher(teacherId, academicYearId));
+    }
+
 
     @GetMapping("/term/grade-report")
     public ResponseEntity<List<GradeReportProjection>> getStudentGradeReportByTerm(

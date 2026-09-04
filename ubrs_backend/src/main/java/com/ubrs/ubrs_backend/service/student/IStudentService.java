@@ -17,6 +17,7 @@ public interface IStudentService {
     List<StudentResponseDto> getAllStudents();
     List<StudentResponseDto> getAllStudentsBySchoolLevel(ESchoolLevel schoolLevel);
     List<StudentResponseDto> getAllStudentsByClass(UUID classId);
+    List<StudentResponseDto> getAllStudentsByClassTeacher(UUID teacherId);
     long totalStudents();
     long totalStudentsBySchoolLevel(ESchoolLevel schoolLevel);
     long totalStudentsByClass(UUID classId);

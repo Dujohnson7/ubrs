@@ -40,6 +40,21 @@ public class GradeController {
     }
 
 
+    @GetMapping("/teacher/{teacherId}")
+    public ResponseEntity<List<GradeResponseDto>> getAllGradeByTeacher(@PathVariable String teacherId){
+        try {
+            List<GradeResponseDto> gradeDtoList = gradeService.getAllGradesByTeacher(UUID.fromString(teacherId));
+            if (Objects.nonNull(gradeDtoList)) {
+                return ResponseEntity.ok(gradeDtoList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
     @GetMapping("/class/{classId}")
     public ResponseEntity<List<GradeResponseDto>> getAllGradesByClass(@PathVariable String classId){
         try {

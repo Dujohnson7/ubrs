@@ -10,8 +10,14 @@ import Input from "../../components/form/input/InputField";
 import DatePicker from "../../components/form/date-picker";
 import { PencilIcon, TrashBinIcon, CloseIcon } from "../../icons";
 import { toast } from "../../utils/toast";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 export default function Assignments() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === ERole.HEADERTEACHER;
+  const isTeacherRole = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
+
   const [assignments, setAssignments] = useState<CourseAssignmentResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -33,7 +39,9 @@ export default function Assignments() {
     const loadAssignments = async () => {
       try {
         setLoading(true);
-        const data = await courseAssignmentService.getAllCourseAssignments();
+        const data = (isTeacherRole && user?.userId)
+          ? await courseAssignmentService.getAllCourseAssignmentsByTeacher(user.userId)
+          : await courseAssignmentService.getAllCourseAssignments();
         setAssignments(data);
       } catch (err) {
         // Error is handled by toast in service
@@ -43,7 +51,8 @@ export default function Assignments() {
     };
 
     loadAssignments();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userId, user?.role]);
 
   const handleDelete = (courseAssignmentId: string) => {
     setAssignmentToDelete(courseAssignmentId);
@@ -136,7 +145,7 @@ export default function Assignments() {
        
 
       <div className="space-y-6">
-        <ComponentCard title="Class Assignments" titleClassName="text-xl sm:text-2xl">
+        <ComponentCard title={isTeacherRole ? "My Course Assignments" : "Class Assignments"} titleClassName="text-xl sm:text-2xl">
           <div className="rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr_auto] items-end">
               <div>
@@ -170,11 +179,13 @@ export default function Assignments() {
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end">
-                <Link to="/assignments/create">
-                  <Button size="sm">Add Assignment</Button>
-                </Link>
-              </div>
+              {isAdmin && (
+                <div className="flex justify-end">
+                  <Link to="/assignments/create">
+                    <Button size="sm">Add Assignment</Button>
+                  </Link>
+                </div>
+              )}
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr] items-end">
               <div>
@@ -233,9 +244,16 @@ export default function Assignments() {
                       </TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("assignmentEditItem", JSON.stringify(item)); navigate("/assignments/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<CloseIcon className="size-4" />} onClick={() => handleCloseAssignment(item.courseAssignmentId)} disabled={item.assignmentStatus === EAssignmentState.CLOSED} title="Close Assignment" ariaLabel="Close Assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseAssignmentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          {isAdmin && (
+                            <>
+                              <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("assignmentEditItem", JSON.stringify(item)); navigate("/assignments/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
+                              <Button size="sm" variant="outline" startIcon={<CloseIcon className="size-4" />} onClick={() => handleCloseAssignment(item.courseAssignmentId)} disabled={item.assignmentStatus === EAssignmentState.CLOSED} title="Close Assignment" ariaLabel="Close Assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" />
+                              <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseAssignmentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                            </>
+                          )}
+                          {isTeacherRole && (
+                            <span className="text-xs text-gray-400 italic">View only</span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

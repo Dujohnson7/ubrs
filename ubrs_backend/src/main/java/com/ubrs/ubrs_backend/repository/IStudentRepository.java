@@ -23,6 +23,8 @@ public interface IStudentRepository extends JpaRepository<Student, UUID> {
 
     List<Student> findAllByIsDeleted(Boolean isDeleted);
 
+    List<Student> findAllBySchoolClass_ClassTeacher_IdAndStudentStatusAndIsDeleted(UUID schoolClassClassTeacherId, EStudentState studentStatus, Boolean isDeleted);
+
     List<Student> findAllBySchoolClass_IdAndIsDeleted(UUID schoolClassId, Boolean isDeleted);
 
     List<Student> findStudentBySchoolClass_ClassLevelAndIsDeleted(ESchoolLevel schoolClassClassLevel, Boolean isDeleted);

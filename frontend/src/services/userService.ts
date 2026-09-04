@@ -27,6 +27,27 @@ export interface UsersResponseDto {
   isFirstTime: boolean;
 }
 
+export interface ParentStudentRequestDto {
+  names: string;
+  email: string;
+  phone: string;
+  studentIds: string[];
+}
+
+export interface ParentStudentResponseDto {
+    id: string;
+    parentId: string;
+    parentName: string;
+    parentEmail: string;
+    parentPhone: string;
+    studentId: string;
+    studentCode: string;
+    studentName: string;
+    schoolClassId: string;
+    schoolClassName: string;
+    classLevel: string;
+}
+
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   const rawText = await response.text();
 
@@ -107,6 +128,25 @@ async function registerUser(user: UsersRequestDto): Promise<UsersResponseDto> {
 
   toast.success("User created successfully");
   return parseJsonResponse<UsersResponseDto>(response, "Unable to parse create user response.");
+}
+
+async function registerParent(parent: ParentStudentRequestDto): Promise<ParentStudentResponseDto[]> {
+  const response = await fetch(getApiUrl("/api/userManagement/registerParent"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(parent),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to create parent");
+    throw new Error(message || "Failed to create parent");
+  }
+
+  toast.success("Parent created successfully");
+  return parseJsonResponse<ParentStudentResponseDto[]>(response, "Unable to parse create parent response.");
 }
 
 async function updateUser(userId: string, user: UsersRequestDto): Promise<UsersResponseDto> {
@@ -202,6 +242,7 @@ export const userService = {
   getAllTeachers,
   getUserById,
   registerUser,
+  registerParent,
   updateUser,
   changePassword,
   activateUser,

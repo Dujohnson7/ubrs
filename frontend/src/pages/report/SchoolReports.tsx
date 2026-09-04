@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
@@ -13,6 +14,8 @@ import {
 } from "../../services/schoolReportService";
 import { academicYearService, AcademicYearResponseDto } from "../../services/academicYearService";
 import { schoolClassService, SchoolClassResponseDto } from "../../services/schoolClassService";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 type TabType = "class" | "subject" | "promotion";
 
@@ -70,6 +73,16 @@ function GradeBadge({ grade }: { grade: string }) {
 }
 
 export default function SchoolReports() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Only HEADERTEACHER may access School Reports
+  useEffect(() => {
+    if (user && user.role !== ERole.HEADERTEACHER) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
+
   const [activeTab, setActiveTab] = useState<TabType>("class");
   const [academicYearId, setAcademicYearId] = useState("");
   const [term, setTerm] = useState("");

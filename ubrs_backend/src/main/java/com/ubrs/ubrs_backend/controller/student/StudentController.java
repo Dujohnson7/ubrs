@@ -1,5 +1,6 @@
 package com.ubrs.ubrs_backend.controller.student;
 
+import com.ubrs.ubrs_backend.domain.dto.grade.GradeResponseDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentResponseDto;
 import com.ubrs.ubrs_backend.service.student.IStudentService;
@@ -36,6 +37,22 @@ public class StudentController {
             return ResponseEntity.badRequest().body(Collections.emptyList());
         }
     }
+
+
+    @GetMapping("/teacher/{teacherId}")
+    public ResponseEntity<List<StudentResponseDto>> getAllStudentByTeacher(@PathVariable String teacherId){
+        try {
+            List<StudentResponseDto> studentDtoList = studentService.getAllStudentsByClassTeacher(UUID.fromString(teacherId));
+            if (Objects.nonNull(studentDtoList)) {
+                return ResponseEntity.ok(studentDtoList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
 
 
     @GetMapping("/primary")

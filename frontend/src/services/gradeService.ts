@@ -90,6 +90,14 @@ async function getAllGrades(): Promise<GradeResponseDto[]> {
   return parseJsonResponse<GradeResponseDto[]>(response, "Unable to parse grades data.");
 }
 
+async function getAllGradesByTeacher(teacherId: string): Promise<GradeResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/grade/teacher/${teacherId}`));
+  if (!response.ok) {
+    throw new Error("Failed to load teacher grades");
+  }
+  return parseJsonResponse<GradeResponseDto[]>(response, "Unable to parse teacher grades data.");
+}
+
 async function getAllGradesByClass(classId: string): Promise<GradeResponseDto[]> {
   const response = await fetch(getApiUrl(`/api/grade/class/${classId}`));
   if (!response.ok) {

@@ -1,5 +1,7 @@
 package com.ubrs.ubrs_backend.controller.userManagement;
 
+import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentRequestDto;
+import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentResponseDto;
 import com.ubrs.ubrs_backend.domain.dto.users.UsersRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.users.UsersResponseDto;
 import com.ubrs.ubrs_backend.service.users.IUsersService;
@@ -55,6 +57,17 @@ public class UserManagementController {
     public ResponseEntity<?> createUser(@Valid @RequestBody UsersRequestDto userDto) {
         try {
             UsersResponseDto respond =  usersService.saveUser(userDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(respond);
+        } catch(Exception ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+
+    @PostMapping("/registerParent")
+    public ResponseEntity<?> createParent(@Valid @RequestBody ParentStudentRequestDto userDto) {
+        try {
+            List<ParentStudentResponseDto> respond =  usersService.createParent(userDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(respond);
         } catch(Exception ex){
             return ResponseEntity.badRequest().body(ex.getMessage());

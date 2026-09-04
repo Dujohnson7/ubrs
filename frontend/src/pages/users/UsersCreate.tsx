@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
-import { userService, UsersRequestDto, ERole } from "../../services/userService";
+import { userService, UsersRequestDto, ERole, ParentStudentRequestDto } from "../../services/userService";
+import { studentService, StudentResponseDto } from "../../services/studentService";
+import SearchableMultiSelect from "../../components/form/SearchableMultiSelect";
 import { toast } from "../../utils/toast";
 
 export default function UsersCreate() {
@@ -13,7 +15,21 @@ export default function UsersCreate() {
   const [role, setRole] = useState<ERole>("TEACHER");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [studentIds, setStudentIds] = useState<string[]>([]);
+  const [students, setStudents] = useState<StudentResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const data = await studentService.getAllStudents();
+        setStudents(data);
+      } catch (err) {
+        console.error("Failed to load students", err);
+      }
+    };
+    fetchStudents();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,20 +49,33 @@ export default function UsersCreate() {
       toast.error("Email is required");
       return;
     }
+    if (role === "PARENT" && studentIds.length === 0) {
+      toast.error("Please select at least one student");
+      return;
+    }
 
     setLoading(true);
 
     try {
-      const userData: UsersRequestDto = {
-        names: names.trim(),
-        role,
-        phone: phone.trim(),
-        email: email.trim(),
-        userStatus: true,
-        isFirstTime: true,
-      };
-
-      await userService.registerUser(userData);
+      if (role === "PARENT") {
+        const parentData: ParentStudentRequestDto = {
+          names: names.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          studentIds: studentIds,
+        };
+        await userService.registerParent(parentData);
+      } else {
+        const userData: UsersRequestDto = {
+          names: names.trim(),
+          role,
+          phone: phone.trim(),
+          email: email.trim(),
+          userStatus: true,
+          isFirstTime: true,
+        };
+        await userService.registerUser(userData);
+      }
       navigate("/users");
     } catch (err) {
       // Error is handled by toast in service
@@ -91,6 +120,19 @@ export default function UsersCreate() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Email</label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" />
               </div>
+              
+              {role === "PARENT" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Select Students</label>
+                  <SearchableMultiSelect 
+                    label="Students"
+                    options={students.map(s => ({ value: s.studentId, text: `${s.firstName} ${s.lastName} (${s.studentCode})` }))}
+                    value={studentIds}
+                    onChange={setStudentIds}
+                    placeholder="Search and select students..."
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">

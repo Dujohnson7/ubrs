@@ -36,7 +36,6 @@ public class CourseAssignmentController {
         }
     }
 
-
     @GetMapping("/{courseAssignmentId}")
     public ResponseEntity<?> getCourseAssignmentById(@PathVariable String courseAssignmentId) {
         try {

@@ -248,8 +248,7 @@ public interface IStudentReportRepository  extends JpaRepository<Grade, UUID> {
     JOIN ParentStudent ps
         ON ps.student = s
 
-    WHERE g.academicYear.id = :academicYearId
-      AND g.schoolClass.id = :schoolClassId
+    WHERE g.academicYear.id = :academicYearId 
       AND g.submitStatus = com.ubrs.ubrs_backend.util.EGradeState.APPROVED
 
       AND (:term IS NULL OR g.term = :term)
@@ -279,7 +278,6 @@ public interface IStudentReportRepository  extends JpaRepository<Grade, UUID> {
     List<GradeReportProjection> findStudentGradeReportByParent(
             @Param("parentId") UUID parentId,
             @Param("academicYearId") UUID academicYearId,
-            @Param("schoolClassId") UUID schoolClassId,
             @Param("term") ETerm term
     );
 }

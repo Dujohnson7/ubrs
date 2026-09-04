@@ -9,8 +9,14 @@ import { TrashBinIcon, EyeIcon, CheckCircleIcon, PencilIcon } from "../../icons"
 import GradesUploadModal from "./GradesUploadModal";
 import { gradeService, GradeResponseDto } from "../../services/gradeService";
 import { academicYearService, AcademicYearResponseDto } from "../../services/academicYearService";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 export default function Grades() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === ERole.HEADERTEACHER;
+  const isTeacherRole = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
+
   const [grades, setGrades] = useState<GradeResponseDto[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +36,9 @@ export default function Grades() {
     setIsLoading(true);
     try {
       const [gradesData, yearsData] = await Promise.all([
-        gradeService.getAllGrades(),
+        isTeacherRole && user?.userId
+          ? gradeService.getAllGradesByTeacher(user.userId)
+          : gradeService.getAllGrades(),
         academicYearService.getAllAcademicYears()
       ]);
       setGrades(gradesData);
@@ -44,7 +52,8 @@ export default function Grades() {
 
   useEffect(() => {
     fetchGrades();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userId, user?.role]);
 
   const handleDelete = async (gradeId: string) => {
     if (!gradeId) return;
@@ -153,10 +162,17 @@ export default function Grades() {
                 </select>
               </div>
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)}>Upload</Button>
-                <Link to="/grades/create">
-                  <Button size="sm">Add Grade</Button>
-                </Link>
+                {isAdmin && <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)}>Upload</Button>}
+                {isAdmin && (
+                  <Link to="/grades/create">
+                    <Button size="sm">Add Grade</Button>
+                  </Link>
+                )}
+                {isTeacherRole && (
+                  <Link to="/grades/create">
+                    <Button size="sm">Add Grade</Button>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -216,7 +232,7 @@ export default function Grades() {
                               </>
                             )}
                             <Button size="sm" variant="outline" startIcon={<EyeIcon className="size-4" />} onClick={() => navigate("/grades/details", { state: { grade: item } })} title="View" ariaLabel="View" className="!px-3 !py-2 !text-xs rounded-lg !bg-gray-100 text-gray-700 hover:!bg-gray-200 dark:!bg-gray-800 dark:text-gray-300 dark:hover:!bg-gray-700">View</Button>
-                            {item.submitStatus === "DRAFT" && (
+                            {item.submitStatus === "DRAFT" && isAdmin && (
                               <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.gradeId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
                             )}
                           </div>

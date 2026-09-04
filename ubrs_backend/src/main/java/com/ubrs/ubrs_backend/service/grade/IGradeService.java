@@ -23,6 +23,7 @@ public interface IGradeService {
 
     GradeResponseDto getGradeById(UUID gradeId);
     List<GradeResponseDto> getAllGrades();
+    List<GradeResponseDto> getAllGradesByTeacher(UUID teacherId);
     List<GradeResponseDto> getAllGradesByClass(UUID classId);
 
 

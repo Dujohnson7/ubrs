@@ -5,6 +5,7 @@ import com.ubrs.ubrs_backend.domain.entity.CourseAssignment;
 import com.ubrs.ubrs_backend.util.ESchoolLevel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,8 +24,19 @@ public interface ICourseRepository extends JpaRepository<Course, UUID> {
     @Query("SELECT c FROM Course c  LEFT JOIN CourseAssignment ca ON ca.course.id = c.id WHERE ca.schoolClass.id = :classId AND  ca.assignmentStatus = 'ACTIVE' ")
     List<Course> findAllCourseByClassId(UUID classId);
 
-    @Query("SELECT c FROM Course c  LEFT JOIN CourseAssignment ca ON ca.course.id = c.id WHERE ca.teacher.id = :teacherrId AND ca.assignmentStatus = 'ACTIVE' AND ca.isDeleted = false ")
-    List<Course> findAllByTeacherId(UUID teacherId);
+    @Query("""
+    SELECT DISTINCT c
+    FROM Course c
+    JOIN CourseAssignment ca
+        ON ca.course.id = c.id
+    WHERE ca.teacher.id = :teacherId
+      AND ca.assignmentStatus = 'ACTIVE'
+      AND ca.isDeleted = false
+      AND c.isDeleted = false
+    """)
+    List<Course> findAllByTeacherId(
+            @Param("teacherId") UUID teacherId
+    );
 
     @Query("""
     SELECT c

@@ -8,8 +8,13 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 export default function Courses() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === ERole.HEADERTEACHER;
+  const isTeacherRole = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
   const [courses, setCourses] = useState<CourseResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -25,7 +30,10 @@ export default function Courses() {
       try {
         setLoading(true);
         let data;
-        if (levelFilter === "PRIMARY") {
+        // Teachers see only their assigned courses; admins can filter by level
+        if (isTeacherRole && user?.userId) {
+          data = await courseService.getCoursesByTeacher(user.userId);
+        } else if (levelFilter === "PRIMARY") {
           data = await courseService.getPrimaryCourses();
         } else if (levelFilter === "NURSERY") {
           data = await courseService.getNurseryCourses();
@@ -41,7 +49,7 @@ export default function Courses() {
     };
 
     loadCourses();
-  }, [levelFilter]);
+  }, [levelFilter, isTeacherRole, user?.userId]);
 
   const handleDelete = (courseId: string) => {
     setCourseToDelete(courseId);
@@ -99,11 +107,13 @@ export default function Courses() {
                   <option value="NURSERY">Nursery</option>
                 </select>
               </div>
-              <div className="flex justify-end">
-                <Link to="/courses/create">
-                  <Button size="sm">Add Course</Button>
-                </Link>
-              </div>
+              {!isTeacherRole && (
+                <div className="flex justify-end">
+                  <Link to="/courses/create">
+                    <Button size="sm">Add Course</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -130,8 +140,15 @@ export default function Courses() {
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseLevel}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("courseEditItem", JSON.stringify(item)); navigate("/courses/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          {isAdmin && (
+                            <>
+                              <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("courseEditItem", JSON.stringify(item)); navigate("/courses/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
+                              <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                            </>
+                          )}
+                          {isTeacherRole && (
+                            <span className="text-xs text-gray-400 italic">View only</span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

@@ -398,6 +398,12 @@ public class GradeServiceImpl implements IGradeService {
     }
 
     @Override
+    public List<GradeResponseDto> getAllGradesByTeacher(UUID teacherId) {
+        List<Grade> gradeList =  gradeRepository.findAllByTeacher_IdAndIsDeleted(teacherId, false);
+        return courseAssigmentMapper.toGradeDtoList(gradeList);
+    }
+
+    @Override
     public List<GradeResponseDto> getAllGradesByClass(UUID classId) {
         List<Grade> gradeList =  gradeRepository.findAllByAcademicYear_IdAndSchoolClass_IdAndIsDeleted(activateAcademicYear().getId(), classId, false);
         return courseAssigmentMapper.toGradeDtoList(gradeList);

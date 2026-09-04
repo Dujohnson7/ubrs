@@ -13,6 +13,8 @@ import { studentReportService } from "../../services/studentReportService";
 import { gradeService, ClassGradeStatusProjection } from "../../services/gradeService";
 import { toast } from "../../utils/toast";
 import { loadReportSignatories } from "./reportSignatures";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 type ClassRow = ClassInfo & { classLevel: string; hasGrades: boolean; approvedSubjects: number };
 
@@ -24,6 +26,9 @@ const formatLevel = (level?: string) => {
 };
 
 export default function StudentReports() {
+  const { user } = useAuth();
+  const isClassTeacher = user?.role === ERole.CLASSTEACHER;
+
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All Levels");
   const [termFilter, setTermFilter] = useState("TERM1");
@@ -72,8 +77,12 @@ export default function StudentReports() {
         const defaultYearLabel =
           yearsData.find((y) => y.academicYearId === defaultYear)?.fiscalYear || "";
 
+        const visibleClasses = isClassTeacher && user?.userId
+          ? classesData.filter((c: SchoolClassResponseDto) => c.classTeacherId === user.userId || (user?.names && c.classTeacherName === user.names))
+          : classesData;
+
         setClasses(
-          classesData.map((c: SchoolClassResponseDto) => ({
+          visibleClasses.map((c: SchoolClassResponseDto) => ({
             id: c.schoolClassId,
             classId: c.schoolClassId.slice(0, 8).toUpperCase(),
             name: c.name,
@@ -96,7 +105,7 @@ export default function StudentReports() {
       }
     };
     void load();
-  }, []);
+  }, [isClassTeacher, user?.userId, user?.names]);
 
   const selectedYear = years.find((y) => y.academicYearId === yearFilter);
 
@@ -189,7 +198,9 @@ export default function StudentReports() {
     setPrintingClassId(item.id);
     try {
       const classInfo = await withSignatories(item);
-      const rows = await studentReportService.getStudentGradeReport(yearFilter, item.id);
+      const rows = (isClassTeacher && user?.userId)
+        ? await studentReportService.getStudentGradeReportByClassTeacher(user.userId, yearFilter)
+        : await studentReportService.getStudentGradeReport(yearFilter, item.id);
       const reports = buildStudentReportsFromGrades(classInfo, rows, termFilter);
       if (reports.length === 0) {
         toast.error(`No APPROVED grades for ${item.name} in ${selectedYear?.fiscalYear || "this year"} (${termFilter === "TERM3" ? "full year" : termFilter})`);

@@ -9,7 +9,7 @@ type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  subItems?: { name: string; path: string; pro?: boolean; new?: boolean; roles?: ERole[] }[];
   roles?: ERole[];
 };
 
@@ -58,7 +58,7 @@ const allNavItems: NavItem[] = [
     icon: <TaskIcon />,
     name: "Assignments",
     path: "/assignments",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
   },
   {
     icon: <PieChartIcon />,
@@ -75,10 +75,10 @@ const allNavItems: NavItem[] = [
   {
     icon: <TableIcon />,
     name: "Reports",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER],
     subItems: [
-      { name: "Student Reports", path: "/student-reports" },
-      { name: "School Report", path: "/school-report" },
+      { name: "Student Reports", path: "/student-reports", roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER] },
+      { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER] },
     ],
   },
 ];
@@ -96,7 +96,16 @@ const AppSidebar: React.FC = () => {
     if (role === ERole.PARENT) {
       return allNavItems.filter((n) => n.path === "/" || n.path === "/profile");
     }
-    return allNavItems.filter((n) => !n.roles || n.roles.includes(role));
+    return allNavItems
+      .filter((n) => !n.roles || n.roles.includes(role))
+      .map((item) => {
+        if (!item.subItems) return item;
+        const filteredSubs = item.subItems.filter(
+          (sub) => !sub.roles || sub.roles.includes(role)
+        );
+        return { ...item, subItems: filteredSubs };
+      })
+      .filter((item) => !item.subItems || item.subItems.length > 0);
   }, [user?.role]);
 
   const [openSubmenu, setOpenSubmenu] = useState<{

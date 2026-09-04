@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import Chart from "react-apexcharts";
-import { ApexOptions } from "apexcharts";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import PageMeta from "../../components/common/PageMeta";
 import Badge from "../../components/ui/badge/Badge";
+import MonthlySalesChart from "../../components/ecommerce/MonthlySalesChart";
 import {
   teacherDashboardService,
   TeacherDashboardOverview,
-  TeacherSubjectAverage,
   TeacherApprovalRow,
 } from "../../services/teacherDashboardService";
 import { CourseAssignmentResponseDto } from "../../services/courseAssignmentService";
@@ -46,7 +44,6 @@ export default function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [term, setTerm] = useState<string>("TERM1");
   const [overview, setOverview] = useState<TeacherDashboardOverview | null>(null);
-  const [averages, setAverages] = useState<TeacherSubjectAverage[]>([]);
   const [approvals, setApprovals] = useState<TeacherApprovalRow[]>([]);
   const [error, setError] = useState("");
 
@@ -63,14 +60,9 @@ export default function TeacherDashboard() {
         setOverview(ov);
         const yearId = ov.activeAcademicYear?.academicYearId;
         if (yearId) {
-          const [avg, appr] = await Promise.all([
-            teacherDashboardService.getSubjectAverages(ov.assignments || [], yearId, term),
-            teacherDashboardService.getApprovalStatus(ov.assignments || [], yearId, term),
-          ]);
-          setAverages(avg);
+          const appr = await teacherDashboardService.getApprovalStatus(ov.assignments || [], yearId, term);
           setApprovals(appr);
         } else {
-          setAverages([]);
           setApprovals([]);
         }
       } catch (e) {
@@ -83,34 +75,7 @@ export default function TeacherDashboard() {
     void load();
   }, [user?.userId, term]);
 
-  const chartOptions: ApexOptions = useMemo(
-    () => ({
-      colors: ["#465fff"],
-      chart: {
-        fontFamily: "Outfit, sans-serif",
-        type: "bar",
-        height: 280,
-        toolbar: { show: false },
-      },
-      plotOptions: {
-        bar: { horizontal: false, columnWidth: "45%", borderRadius: 4 },
-      },
-      dataLabels: { enabled: false },
-      xaxis: {
-        categories: averages.map((a) => `${a.subject} (${a.className})`),
-        labels: { style: { fontSize: "11px" }, rotate: -35 },
-      },
-      yaxis: { max: 100, title: { text: "Average %" } },
-      tooltip: { y: { formatter: (v) => `${v}%` } },
-      grid: { borderColor: "#f1f1f1" },
-    }),
-    [averages]
-  );
 
-  const chartSeries = useMemo(
-    () => [{ name: "Average", data: averages.map((a) => Math.round(a.avgScore * 10) / 10) }],
-    [averages]
-  );
 
   const assignments: CourseAssignmentResponseDto[] = overview?.assignments || [];
   const activeCourses = assignments.filter((a) => a.assignmentStatus === "ACTIVE");
@@ -178,13 +143,8 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="grid grid-cols-12 gap-4 md:gap-6">
-          <div className="col-span-12 xl:col-span-7 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h3 className="font-semibold text-gray-800 dark:text-white/90 mb-4">Average Marks by Subject</h3>
-            {averages.length === 0 ? (
-              <p className="text-sm text-gray-500 py-10 text-center">No subject averages for your courses yet.</p>
-            ) : (
-              <Chart options={chartOptions} series={chartSeries} type="bar" height={280} />
-            )}
+          <div className="col-span-12 xl:col-span-7">
+            <MonthlySalesChart />
           </div>
 
           <div className="col-span-12 xl:col-span-5 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">

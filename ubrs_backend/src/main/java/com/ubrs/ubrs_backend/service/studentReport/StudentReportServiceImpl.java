@@ -1,6 +1,8 @@
 package com.ubrs.ubrs_backend.service.studentReport;
 
+import com.ubrs.ubrs_backend.domain.entity.SchoolClass;
 import com.ubrs.ubrs_backend.domain.projection.studentReport.GradeReportProjection;
+import com.ubrs.ubrs_backend.repository.ISchoolClassRepository;
 import com.ubrs.ubrs_backend.repository.IStudentReportRepository;
 import com.ubrs.ubrs_backend.util.ETerm;
 import jakarta.transaction.Transactional;
@@ -16,10 +18,17 @@ import java.util.UUID;
 public class StudentReportServiceImpl implements IStudentReportService {
 
     private final IStudentReportRepository studentReportRepository;
+    private final ISchoolClassRepository schoolClassRepository;
 
     @Override
     public List<GradeReportProjection> getStudentGradeReport(UUID academicYearId, UUID schoolClassId) {
         return studentReportRepository.findStudentGradeReport(academicYearId, schoolClassId);
+    }
+
+    @Override
+    public List<GradeReportProjection> getStudentGradeReportByClassTeacher(UUID teacherId, UUID academicYearId) {
+        SchoolClass classAsTeacher = schoolClassRepository.findSchoolClassByClassTeacher_IdAndIsDeleted(teacherId, false);
+        return studentReportRepository.findStudentGradeReport(academicYearId, classAsTeacher.getId());
     }
 
     @Override

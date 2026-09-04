@@ -382,6 +382,12 @@ public class StudentServiceImpl implements IStudentService {
     }
 
     @Override
+    public List<StudentResponseDto> getAllStudentsByClassTeacher(UUID teacherId) {
+        List<Student> studentList = studentRepository.findAllBySchoolClass_ClassTeacher_IdAndStudentStatusAndIsDeleted(teacherId, EStudentState.ACTIVE, false);
+        return studentMapper.toStudentDtoList(studentList);
+    }
+
+    @Override
     public long totalStudents() {
         return studentRepository.countAllByStudentStatusAndIsDeleted(EStudentState.ACTIVE, false);
     }
