@@ -17,9 +17,11 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
 }
 
 async function getUserProfile(userId: string): Promise<UsersResponseDto> {
+  const token = localStorage.getItem("token");
   const response = await fetch(getApiUrl(`/api/profile/${userId}`), {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
@@ -33,8 +35,12 @@ async function getUserProfile(userId: string): Promise<UsersResponseDto> {
 }
 
 async function updateProfile(userId: string, formData: FormData): Promise<UsersResponseDto> {
+  const token = localStorage.getItem("token");
   const response = await fetch(getApiUrl(`/api/profile/update/${userId}`), {
     method: "PUT",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: formData,
   });
 
@@ -49,8 +55,12 @@ async function updateProfile(userId: string, formData: FormData): Promise<UsersR
 }
 
 async function uploadSignature(userId: string, formData: FormData): Promise<UsersResponseDto> {
+  const token = localStorage.getItem("token");
   const response = await fetch(getApiUrl(`/api/profile/signature/${userId}`), {
     method: "PUT",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: formData,
   });
 
@@ -65,6 +75,7 @@ async function uploadSignature(userId: string, formData: FormData): Promise<User
 }
 
 async function checkPassword(userId: string, password: string): Promise<boolean> {
+  const token = localStorage.getItem("token");
   const formData = new URLSearchParams();
   formData.append("userId", userId);
   formData.append("password", password);
@@ -73,6 +84,7 @@ async function checkPassword(userId: string, password: string): Promise<boolean>
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: formData.toString(),
   });
@@ -85,10 +97,12 @@ async function checkPassword(userId: string, password: string): Promise<boolean>
 }
 
 async function changePassword(userId: string, password: string): Promise<void> {
+  const token = localStorage.getItem("token");
   const response = await fetch(getApiUrl(`/api/profile/changePassword/${userId}`), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ password }),
   });

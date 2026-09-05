@@ -6,7 +6,7 @@ export default function ResetPassword() {
   return (
     <>
       <PageMeta
-        title="Reset Password — UBRS"
+        title="Reset Password | UBRS"
         description="Set a new password for your UBRS account."
       />
       <AuthLayout>

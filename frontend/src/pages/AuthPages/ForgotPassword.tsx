@@ -6,7 +6,7 @@ export default function ForgotPassword() {
   return (
     <>
       <PageMeta
-        title="Forgot Password — UBRS"
+        title="Forgot Password | UBRS"
         description="Reset your UBRS account password by entering your registered email address."
       />
       <AuthLayout>

@@ -8,3 +8,4 @@ export const getApiUrl = (path: string): string => {
   const apiPath = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${apiPath}`;
 };
+ 

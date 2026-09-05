@@ -87,7 +87,7 @@ export default function UserMetaCard() {
     } finally {
       setIsUploading(false);
     }
-  };
+  }; 
 
   const handleResetPassword = () => {
     if (newPassword !== confirmPassword) {
