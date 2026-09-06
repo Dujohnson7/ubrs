@@ -79,6 +79,22 @@ async function getNurseryClasses(): Promise<SchoolClassResponseDto[]> {
   return parseJsonResponse<SchoolClassResponseDto[]>(response, "Unable to parse nursery classes data from server.");
 }
 
+async function getClassesTaughtByTeacher(teacherId: string): Promise<SchoolClassResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/schoolClass/teacher/${teacherId}`), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load classes taught by teacher");
+    throw new Error(message || "Failed to load classes taught by teacher");
+  }
+
+  return parseJsonResponse<SchoolClassResponseDto[]>(response, "Unable to parse classes data from server.");
+}
+
 async function getSchoolClassById(classId: string): Promise<SchoolClassResponseDto> {
   const response = await fetch(getApiUrl(`/api/schoolClass/${classId}`), {
     headers: {
@@ -170,6 +186,7 @@ export const schoolClassService = {
   getAllSchoolClasses,
   getPrimaryClasses,
   getNurseryClasses,
+  getClassesTaughtByTeacher,
   getSchoolClassById,
   registerSchoolClass,
   updateSchoolClass,

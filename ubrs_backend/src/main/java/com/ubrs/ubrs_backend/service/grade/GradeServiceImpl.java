@@ -68,7 +68,7 @@ public class GradeServiceImpl implements IGradeService {
         AcademicYear foundAcademicYear = academicYearRepository.findAcademicYearByIdAndIsDeleted(gradeRequestDto.getAcademicYearId(), false)
                 .orElseThrow(() -> new RuntimeException("ACADEMIC YEAR NOT FOUND"));
 
-        CourseAssignment courseAssignment = courseAssignmentRepository.findCourseAssignmentByCourse_IdAndAssignmentStatusAndIsDeleted(foundCourse.getId(), EAssignmentState.ACTIVE, false);
+        CourseAssignment courseAssignment = courseAssignmentRepository.findCourseAssignmentBySchoolClass_IdAndCourse_IdAndAssignmentStatusAndIsDeleted(foundSchoolClass.getId(), foundCourse.getId(), EAssignmentState.ACTIVE, false);
 
         if (gradeRepository.existsBySchoolClass_IdAndAcademicYear_IdAndTermAndCourse_IdAndGradeTypeAndSubmitStatusInAndIsDeleted(foundSchoolClass.getId(), foundAcademicYear.getId(), gradeRequestDto.getTerm(), foundCourse.getId(), gradeRequestDto.getGradeType(), List.of(EGradeState.APPROVED, EGradeState.SUBMITTED, EGradeState.REJECTED, EGradeState.DRAFT), false)){
             throw new RuntimeException("Grade Already Exists, Check if it is reject you can collect to what you have");

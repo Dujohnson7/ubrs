@@ -91,6 +91,12 @@ public class CourseServiceImpl implements ICourseService {
     }
 
     @Override
+    public List<CourseResponseDto> getAllCoursesByTeacherAndSchoolClass(UUID teacherId, UUID schoolClassId) {
+        List<Course> courseList = courseRepository.findAllByTeacherIdAndSchoolClassId(teacherId, schoolClassId);
+        return courseMapper.toCourseDtoList(courseList);
+    }
+
+    @Override
     public List<CourseResponseDto> getAllCoursesByClass(UUID classId) {
         List<Course> courseList = courseRepository.findAllCourseByClassId(classId);
         return courseMapper.toCourseDtoList(courseList);

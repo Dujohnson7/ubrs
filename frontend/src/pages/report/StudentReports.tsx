@@ -57,16 +57,7 @@ export default function StudentReports() {
         setClassGrades(classGradeData);
 
         const active = yearsData.find((y) => y.academicYearStatus === "ACTIVE");
-        // Prefer year that actually has grade data (approved marks live there)
-        const yearWithGrades = classGradeData.find((g) => g.academicYearId)?.academicYearId;
-        const defaultYear =
-          (active && classGradeData.some((g) => g.academicYearId === active.academicYearId)
-            ? active.academicYearId
-            : null) ||
-          yearWithGrades ||
-          active?.academicYearId ||
-          yearsData[0]?.academicYearId ||
-          "";
+        const defaultYear = active?.academicYearId || yearsData[0]?.academicYearId || "";
         setYearFilter(defaultYear);
 
         const countByClass = studentsData.reduce<Record<string, number>>((acc, s) => {

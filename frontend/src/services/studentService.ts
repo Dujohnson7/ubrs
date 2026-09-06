@@ -118,6 +118,22 @@ async function getStudentsByClass(classId: string): Promise<StudentResponseDto[]
   return parseJsonResponse<StudentResponseDto[]>(response, "Unable to parse class students data from server.");
 }
 
+async function getStudentsByTeacher(teacherId: string): Promise<StudentResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/student/teacher/${teacherId}`), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load students for teacher");
+    throw new Error(message || "Failed to load students for teacher");
+  }
+
+  return parseJsonResponse<StudentResponseDto[]>(response, "Unable to parse students data from server.");
+}
+
 async function getStudentById(studentId: string): Promise<StudentResponseDto> {
   const response = await fetch(getApiUrl(`/api/student/${studentId}`), {
     headers: {
@@ -214,6 +230,7 @@ export const studentService = {
   getPrimaryStudents,
   getNurseryStudents,
   getStudentsByClass,
+  getStudentsByTeacher,
   getStudentById,
   registerStudent,
   importStudents,

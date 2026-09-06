@@ -81,6 +81,12 @@ const allNavItems: NavItem[] = [
       { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER] },
     ],
   },
+  {
+    icon: <TableIcon />,
+    name: "Children Reports",
+    path: "/parent/reports",
+    roles: [ERole.PARENT],
+  },
 ];
 
 const othersItems: NavItem[] = [];
@@ -94,7 +100,7 @@ const AppSidebar: React.FC = () => {
     const role = user?.role;
     if (!role) return allNavItems.filter((n) => !n.roles);
     if (role === ERole.PARENT) {
-      return allNavItems.filter((n) => n.path === "/" || n.path === "/profile");
+      return allNavItems.filter((n) => n.path === "/" || n.path === "/parent/reports" || n.path === "/profile");
     }
     return allNavItems
       .filter((n) => !n.roles || n.roles.includes(role))

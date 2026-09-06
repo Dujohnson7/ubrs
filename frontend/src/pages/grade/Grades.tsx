@@ -162,7 +162,7 @@ export default function Grades() {
                 </select>
               </div>
               <div className="flex justify-end gap-2">
-                {isAdmin && <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)}>Upload</Button>}
+                {isAdmin || isTeacherRole && <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)}>Upload</Button>}
                 {isAdmin && (
                   <Link to="/grades/create">
                     <Button size="sm">Add Grade</Button>

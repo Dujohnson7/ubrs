@@ -112,6 +112,22 @@ async function getCoursesByTeacher(teacherId: string): Promise<CourseResponseDto
   return parseJsonResponse<CourseResponseDto[]>(response, "Unable to parse teacher courses data from server.");
 }
 
+async function getCoursesByTeacherAndSchoolClass(teacherId: string, schoolClassId: string): Promise<CourseResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/course/class/teacherCourses?teacherId=${encodeURIComponent(teacherId)}&courseId=${encodeURIComponent(schoolClassId)}`), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load courses for class");
+    throw new Error(message || "Failed to load courses for class");
+  }
+
+  return parseJsonResponse<CourseResponseDto[]>(response, "Unable to parse courses data from server.");
+}
+
 async function getUnassignedCourses(classId: string): Promise<CourseResponseDto[]> {
   const response = await fetch(getApiUrl(`/api/course/unassigned-courses/${classId}`), {
     headers: {
@@ -205,6 +221,7 @@ export const courseService = {
   getNurseryCourses,
   getCoursesByClass,
   getCoursesByTeacher,
+  getCoursesByTeacherAndSchoolClass,
   getUnassignedCourses,
   getCourseById,
   registerCourse,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { useAuth } from "../../hooks/useAuth";
 import PageMeta from "../../components/common/PageMeta";
 import Button from "../../components/ui/button/Button";
@@ -86,14 +87,27 @@ export default function ParentDashboard() {
 
     setDownloadingReport(child.studentId);
     try {
-      // Get student grade report data
-      const gradeData = await studentReportService.getStudentGradeReportByParent(
-        user?.userId || "",
-        overview.activeAcademicYear.academicYearId
-      );
+      // Get grade data for the whole class to compute accurate rank and position
+      let classGrades: GradeReportProjection[] = [];
+      try {
+        classGrades = await studentReportService.getStudentGradeReport(
+          overview.activeAcademicYear.academicYearId,
+          child.schoolClassId
+        );
+      } catch {
+        classGrades = [];
+      }
 
-      // Filter for this specific student
-      const studentGrades = gradeData.filter(g => g.studentId === child.studentId);
+      let studentGrades: GradeReportProjection[] = [];
+      if (classGrades.length > 0) {
+        studentGrades = classGrades.filter(g => g.studentId === child.studentId);
+      } else {
+        const parentGrades = await studentReportService.getStudentGradeReportByParent(
+          user?.userId || "",
+          overview.activeAcademicYear.academicYearId
+        );
+        studentGrades = parentGrades.filter(g => g.studentId === child.studentId);
+      }
 
       if (studentGrades.length === 0) {
         toast.error("No grade data available for this student");
@@ -108,7 +122,7 @@ export default function ParentDashboard() {
         level: child.classLevel || "Primary",
         classLevel: child.classLevel || "Primary",
         classTeacher: "—",
-        studentCount: 1,
+        studentCount: classGrades.length > 0 ? new Set(classGrades.map(g => g.studentId)).size : 1,
         academicYear: overview.activeAcademicYear.fiscalYear,
         academicYearId: overview.activeAcademicYear.academicYearId,
       };
@@ -120,31 +134,25 @@ export default function ParentDashboard() {
       classInfo.headteacher = signatories.headteacher;
       classInfo.headteacherSignature = signatories.headteacherSignature;
 
-      // Convert GradeReportProjection to GradeRow format
-      const gradeRows = studentGrades.map(g => ({
-        studentId: g.studentId,
-        studentCode: g.studentCode,
-        studentName: g.studentName,
-        courseId: g.courseId,
-        courseCode: g.courseCode,
-        courseName: g.courseName,
-        term: g.term,
-        testMark: g.testMark,
-        testMaxMark: g.testMaxMark,
-        examMark: g.examMark,
-        examMaxMark: g.examMaxMark,
-      }));
+      // Use class grades if available so position ranking is calculated among classmates
+      const gradesToUse = classGrades.length > 0 ? classGrades : studentGrades;
 
       // Build student reports
-      const studentReports = buildStudentReportsFromGrades(classInfo, gradeRows, "TERM3");
+      const studentReports = buildStudentReportsFromGrades(classInfo, gradesToUse, "TERM3");
 
-      if (studentReports.length === 0) {
+      const targetReport = studentReports.find(
+        r =>
+          r.registrationId === child.studentCode ||
+          r.studentNames.trim().toLowerCase() === (child.studentName || "").trim().toLowerCase()
+      ) || studentReports[0];
+
+      if (!targetReport) {
         toast.error("Unable to generate student report");
         return;
       }
 
       // Print the report
-      await printStudentReport(studentReports[0]);
+      await printStudentReport(targetReport);
       toast.success("Report downloaded successfully");
     } catch (error) {
       console.error("Error downloading report:", error);
@@ -162,11 +170,13 @@ export default function ParentDashboard() {
     <>
       <PageMeta title="Ubrs — Parent Dashboard" description="View your children's classes and marks." />
       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">Parent Dashboard</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Welcome{user?.names ? `, ${user.names}` : ""}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">Parent Dashboard</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Welcome{user?.names ? `, ${user.names}` : ""}
+            </p>
+          </div> 
         </div>
 
         {error ? (

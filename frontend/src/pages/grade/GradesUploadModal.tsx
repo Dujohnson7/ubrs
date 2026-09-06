@@ -6,6 +6,8 @@ import { gradeService, GradeType } from "../../services/gradeService";
 import { courseService, CourseResponseDto } from "../../services/courseService";
 import { academicYearService, AcademicYearResponseDto } from "../../services/academicYearService";
 import { schoolClassService, SchoolClassResponseDto } from "../../services/schoolClassService";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 interface GradesUploadModalProps {
   isOpen: boolean;
@@ -14,6 +16,9 @@ interface GradesUploadModalProps {
 }
 
 export default function GradesUploadModal({ isOpen, onClose, onSuccess }: GradesUploadModalProps) {
+  const { user } = useAuth();
+  const isTeacher = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
+
   const [file, setFile] = useState<File | null>(null);
   const [courseId, setCourseId] = useState("");
   const [academicYearId, setAcademicYearId] = useState("");
@@ -34,16 +39,22 @@ export default function GradesUploadModal({ isOpen, onClose, onSuccess }: Grades
       try {
         const [years, classes] = await Promise.all([
           academicYearService.getAllAcademicYears(),
-          schoolClassService.getAllSchoolClasses(),
+          (isTeacher && user?.userId)
+            ? schoolClassService.getClassesTaughtByTeacher(user.userId)
+            : schoolClassService.getAllSchoolClasses(),
         ]);
         setAvailableYears(years);
         setAvailableClasses(classes);
+        const activeYear = years.find((y) => y.academicYearStatus === "ACTIVE");
+        if (activeYear) {
+          setAcademicYearId(activeYear.academicYearId);
+        }
       } catch (err) {
         console.error("Failed to load options", err);
       }
     };
     load();
-  }, [isOpen]);
+  }, [isOpen, isTeacher, user?.userId]);
 
   useEffect(() => {
     if (!schoolClassId) {
@@ -53,7 +64,9 @@ export default function GradesUploadModal({ isOpen, onClose, onSuccess }: Grades
     }
     const loadCourses = async () => {
       try {
-        const courses = await courseService.getCoursesByClass(schoolClassId);
+        const courses = (isTeacher && user?.userId)
+          ? await courseService.getCoursesByTeacherAndSchoolClass(user.userId, schoolClassId)
+          : await courseService.getCoursesByClass(schoolClassId);
         setClassCourses(courses);
         setCourseId(""); // reset course when class changes
       } catch (err) {
@@ -62,7 +75,7 @@ export default function GradesUploadModal({ isOpen, onClose, onSuccess }: Grades
       }
     };
     loadCourses();
-  }, [schoolClassId]);
+  }, [schoolClassId, isTeacher, user?.userId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

@@ -9,11 +9,15 @@ import { courseService, CourseResponseDto } from "../../services/courseService";
 import { academicYearService, AcademicYearResponseDto } from "../../services/academicYearService";
 import { schoolClassService, SchoolClassResponseDto } from "../../services/schoolClassService";
 import { studentService } from "../../services/studentService";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 type StudentRow = { studentId: string; name: string; mark: string };
 
 export default function GradesCreate() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isTeacher = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
 
   // Form fields matching GradeRequestDto
   const [academicYearId, setAcademicYearId] = useState("");
@@ -37,16 +41,22 @@ export default function GradesCreate() {
       try {
         const [years, classes] = await Promise.all([
           academicYearService.getAllAcademicYears(),
-          schoolClassService.getAllSchoolClasses(),
+          (isTeacher && user?.userId)
+            ? schoolClassService.getClassesTaughtByTeacher(user.userId)
+            : schoolClassService.getAllSchoolClasses(),
         ]);
         setAvailableYears(years);
         setAvailableClasses(classes);
+        const activeYear = years.find((y) => y.academicYearStatus === "ACTIVE");
+        if (activeYear) {
+          setAcademicYearId(activeYear.academicYearId);
+        }
       } catch (err) {
         console.error("Failed to load form data", err);
       }
     };
     load();
-  }, []);
+  }, [isTeacher, user?.userId]);
 
   // When class changes, load students AND courses for that class
   useEffect(() => {
@@ -60,7 +70,9 @@ export default function GradesCreate() {
       try {
         const [studentData, courseData] = await Promise.all([
           studentService.getStudentsByClass(schoolClassId),
-          courseService.getCoursesByClass(schoolClassId),
+          (isTeacher && user?.userId)
+            ? courseService.getCoursesByTeacherAndSchoolClass(user.userId, schoolClassId)
+            : courseService.getCoursesByClass(schoolClassId),
         ]);
         setStudents(studentData.map(s => ({
           studentId: s.studentId,
@@ -76,7 +88,7 @@ export default function GradesCreate() {
       }
     };
     loadClassData();
-  }, [schoolClassId]);
+  }, [schoolClassId, isTeacher, user?.userId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,15 +142,7 @@ export default function GradesCreate() {
             <div className="p-5 border border-gray-200 rounded-xl bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Grade Configuration</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Course <span className="text-error-500">*</span></label>
-                  <select required className={selectCls} value={courseId} onChange={(e) => setCourseId(e.target.value)} disabled={!schoolClassId}>
-                    <option value="">{schoolClassId ? "Select course" : "Select a class first"}</option>
-                    {classCourses.map(c => (
-                      <option key={c.courseId} value={c.courseId}>{c.courseName}</option>
-                    ))}
-                  </select>
-                </div>
+                
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Class <span className="text-error-500">*</span></label>
@@ -146,6 +150,17 @@ export default function GradesCreate() {
                     <option value="">Select class</option>
                     {availableClasses.map(cl => (
                       <option key={cl.schoolClassId} value={cl.schoolClassId}>{cl.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Course <span className="text-error-500">*</span></label>
+                  <select required className={selectCls} value={courseId} onChange={(e) => setCourseId(e.target.value)} disabled={!schoolClassId}>
+                    <option value="">{schoolClassId ? "Select course" : "Select a class first"}</option>
+                    {classCourses.map(c => (
+                      <option key={c.courseId} value={c.courseId}>{c.courseName}</option>
                     ))}
                   </select>
                 </div>

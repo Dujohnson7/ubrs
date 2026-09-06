@@ -101,6 +101,12 @@ public class SchoolClassServiceImpl implements  ISchoolClassService{
     }
 
     @Override
+    public List<SchoolClassResponseDto> getClassesTaughtByTeacher(UUID teacherId) {
+        List<SchoolClass> schoolClassList = schoolClassRepository.findAllByTaughtByTeacher(teacherId);
+        return schoolClassMapper.toSchoolClassDtoList(schoolClassList);
+    }
+
+    @Override
     public List<SchoolClassResponseDto> getAllClassesBySchoolLevel(ESchoolLevel schoolLevel) {
         List<SchoolClass> schoolClassList = schoolClassRepository.findAllByClassLevelAndIsDeleted(schoolLevel, false);
         return schoolClassMapper.toSchoolClassDtoList(schoolClassList);
@@ -108,11 +114,12 @@ public class SchoolClassServiceImpl implements  ISchoolClassService{
 
     @Override
     public long totalClassesBySchoolLevel(ESchoolLevel schoolLevel) {
-        return 0;
+        return schoolClassRepository.countAllByClassLevelAndIsDeleted(schoolLevel, false);
     }
 
     @Override
     public long totalClasses() {
-        return 0;
+        return schoolClassRepository.countAllByIsDeleted(false);
+
     }
 }

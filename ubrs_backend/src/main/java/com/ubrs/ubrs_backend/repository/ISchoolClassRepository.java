@@ -3,6 +3,7 @@ package com.ubrs.ubrs_backend.repository;
 import com.ubrs.ubrs_backend.domain.entity.SchoolClass;
 import com.ubrs.ubrs_backend.util.ESchoolLevel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,4 +22,9 @@ public interface ISchoolClassRepository extends JpaRepository<SchoolClass, UUID>
     List<SchoolClass> findAllByIsDeleted(Boolean isDeleted);
 
     List<SchoolClass> findAllByClassLevelAndIsDeleted(ESchoolLevel classLevel, Boolean isDeleted);
+
+    @Query("SELECT DISTINCT sc FROM SchoolClass sc JOIN CourseAssignment ca ON ca.schoolClass.id = sc.id WHERE ca.teacher.id = :teacherId  AND ca.assignmentStatus = 'ACTIVE' AND ca.isDeleted = false")
+    List<SchoolClass> findAllByTaughtByTeacher(UUID teacherId);
+
+    long countAllByClassLevelAndIsDeleted(ESchoolLevel classLevel, Boolean isDeleted);
 }

@@ -34,9 +34,21 @@ public interface ICourseRepository extends JpaRepository<Course, UUID> {
       AND ca.isDeleted = false
       AND c.isDeleted = false
     """)
-    List<Course> findAllByTeacherId(
-            @Param("teacherId") UUID teacherId
-    );
+    List<Course> findAllByTeacherId(@Param("teacherId") UUID teacherId);
+
+
+    @Query("""
+    SELECT DISTINCT c
+    FROM Course c
+    JOIN CourseAssignment ca
+        ON ca.course.id = c.id
+    WHERE ca.teacher.id = :teacherId
+      AND ca.schoolClass.id = :classId
+      AND ca.assignmentStatus = 'ACTIVE'
+      AND ca.isDeleted = false
+      AND c.isDeleted = false
+    """)
+    List<Course> findAllByTeacherIdAndSchoolClassId(@Param("teacherId") UUID teacherId, @Param("classId") UUID classId);
 
     @Query("""
     SELECT c

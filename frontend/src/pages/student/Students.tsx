@@ -11,8 +11,12 @@ import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
 import { Modal } from "../../components/ui/modal";
 import { toast } from "../../utils/toast";
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
 
 function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
+  const { user } = useAuth();
+  const isClassTeacher = user?.role === ERole.CLASSTEACHER;
   const [file, setFile] = useState<File | null>(null);
   const [classId, setClassId] = useState("");
   const [classes, setClasses] = useState<import("../../services/schoolClassService").SchoolClassResponseDto[]>([]);
@@ -21,7 +25,9 @@ function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; 
   useEffect(() => {
     const loadClasses = async () => {
       try {
-        const data = await schoolClassService.getAllSchoolClasses();
+        const data = (isClassTeacher && user?.userId)
+          ? await schoolClassService.getClassesTaughtByTeacher(user.userId)
+          : await schoolClassService.getAllSchoolClasses();
         setClasses(data);
       } catch (err) {
         // Error is handled by toast in service
@@ -29,7 +35,7 @@ function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; 
     };
 
     loadClasses();
-  }, []);
+  }, [isClassTeacher, user?.userId]);
 
   const handleUpload = async () => {
     if (!file || !classId) return;
@@ -86,6 +92,9 @@ function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; 
 }
 
 export default function Students() {
+  const { user } = useAuth();
+  const isClassTeacher = user?.role === ERole.CLASSTEACHER;
+
   const [students, setStudents] = useState<StudentResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -103,7 +112,9 @@ export default function Students() {
     try {
       setLoading(true);
       let data;
-      if (classFilter === "PRIMARY") {
+      if (isClassTeacher && user?.userId) {
+        data = await studentService.getStudentsByTeacher(user.userId);
+      } else if (classFilter === "PRIMARY") {
         data = await studentService.getPrimaryStudents();
       } else if (classFilter === "NURSERY") {
         data = await studentService.getNurseryStudents();
@@ -116,7 +127,7 @@ export default function Students() {
     } finally {
       setLoading(false);
     }
-  }, [classFilter]);
+  }, [classFilter, isClassTeacher, user?.userId]);
 
   useEffect(() => {
     fetchStudents();
@@ -167,19 +178,21 @@ export default function Students() {
       <div className="space-y-6">
         <ComponentCard title="Students" titleClassName="text-xl sm:text-2xl">
           <div className="rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr_auto] items-end">
+            <div className={`grid gap-4 ${isClassTeacher ? "lg:grid-cols-[2fr_1fr_1fr_auto]" : "lg:grid-cols-[2fr_1fr_1fr_1fr_auto]"} items-end`}>
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Search Entries</label>
                 <Input placeholder="Search students..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
               </div>
-              <div>
-                <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">School Level</label>
-                <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}>
-                  <option value="ALL">All Levels</option>
-                  <option value="PRIMARY">Primary</option>
-                  <option value="NURSERY">Nursery</option>
-                </select>
-              </div>
+              {!isClassTeacher && (
+                <div>
+                  <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">School Level</label>
+                  <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}>
+                    <option value="ALL">All Levels</option>
+                    <option value="PRIMARY">Primary</option>
+                    <option value="NURSERY">Nursery</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Status</label>
                 <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as "ALL" | EStudentState); setPage(1); }}>

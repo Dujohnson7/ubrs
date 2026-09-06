@@ -116,6 +116,22 @@ public class CourseController {
     }
 
 
+
+    @GetMapping("/class/teacherCourses")
+    public ResponseEntity<List<CourseResponseDto>> getAllCoursesByTeacherAndSchoolClass(@RequestParam String teacherId, @RequestParam String courseId){
+        try {
+            List<CourseResponseDto> courseDtoList = courseService.getAllCoursesByTeacherAndSchoolClass(UUID.fromString(teacherId), UUID.fromString(courseId));
+            if (Objects.nonNull(courseDtoList)) {
+                return ResponseEntity.ok(courseDtoList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
     @GetMapping("/{courseId}")
     public ResponseEntity<?> getCourseById(@PathVariable String courseId) {
         try {

@@ -13,6 +13,7 @@ public interface ISchoolClassService {
     SchoolClassResponseDto updateClass(UUID classId, SchoolClassRequestDto schoolClassRequestDto);
     void deleteClass(UUID classId);
     List<SchoolClassResponseDto> getAllClasses();
+    List<SchoolClassResponseDto> getClassesTaughtByTeacher(UUID teacherId);
     List<SchoolClassResponseDto> getAllClassesBySchoolLevel(ESchoolLevel schoolLevel);
     long totalClassesBySchoolLevel(ESchoolLevel schoolLevel);
     long totalClasses();

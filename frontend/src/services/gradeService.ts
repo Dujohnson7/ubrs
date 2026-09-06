@@ -270,6 +270,7 @@ async function getAllByAcademicYearAndTermAndSchoolClassAndCourse(
 
 export const gradeService = {
   getAllGrades,
+  getAllGradesByTeacher,
   getAllGradesByClass,
   getGradeById,
   saveGrade,

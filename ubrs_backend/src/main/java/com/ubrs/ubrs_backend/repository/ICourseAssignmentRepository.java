@@ -29,5 +29,6 @@ public interface ICourseAssignmentRepository  extends JpaRepository<CourseAssign
 
     long countAllByTeacher_IdAndAssignmentStatusAndIsDeleted(UUID teacherId, EAssignmentState assignmentStatus, Boolean isDeleted);
 
-    CourseAssignment findCourseAssignmentByCourse_IdAndAssignmentStatusAndIsDeleted(UUID courseId, EAssignmentState assignmentStatus, Boolean isDeleted);
+    CourseAssignment findCourseAssignmentBySchoolClass_IdAndCourse_IdAndAssignmentStatusAndIsDeleted(UUID schoolClassId, UUID courseId, EAssignmentState assignmentStatus, Boolean isDeleted);
+ 
 }

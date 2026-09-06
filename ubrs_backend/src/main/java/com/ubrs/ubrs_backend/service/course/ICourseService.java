@@ -15,6 +15,7 @@ public interface ICourseService {
     List<CourseResponseDto> getAllCourses();
     List<CourseResponseDto> getAllCoursesBySchoolLevel(ESchoolLevel schoolLevel);
     List<CourseResponseDto> getAllCoursesByTeacher(UUID teacherId);
+    List<CourseResponseDto> getAllCoursesByTeacherAndSchoolClass(UUID teacherId, UUID schoolClassId);
     List<CourseResponseDto> getAllCoursesByClass(UUID classId);
     List<CourseResponseDto> getAllCoursesNotYetAssign(UUID classId);
     long totalCourses();

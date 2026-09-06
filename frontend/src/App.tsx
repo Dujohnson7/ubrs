@@ -38,6 +38,7 @@ import MarksApproval from "./pages/report/MarksApproval";
 import ClassSubjectsApproval from "./pages/report/ClassSubjectsApproval";
 import SubjectMarksApproval from "./pages/report/SubjectMarksApproval";
 import SchoolReports from "./pages/report/SchoolReports";
+import ParentReports from "./pages/report/ParentReports";
 import { AuthProvider } from "./context/AuthContext";
 import ToastContainer from "./components/common/ToastContainer";
 
@@ -83,6 +84,8 @@ export default function App() {
             <Route path="/marks-approval/details" element={<ClassSubjectsApproval />} />
             <Route path="/marks-approval/details/studentGrade" element={<SubjectMarksApproval />} />
             <Route path="/school-report" element={<SchoolReports />} />
+            <Route path="/parent/reports" element={<ParentReports />} />
+            <Route path="/parent-reports" element={<ParentReports />} />
             <Route path="/calendar" element={<Calendar />} /> 
           </Route>
 

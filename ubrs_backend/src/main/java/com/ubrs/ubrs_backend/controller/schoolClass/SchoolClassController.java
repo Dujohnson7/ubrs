@@ -41,6 +41,21 @@ public class SchoolClassController {
     }
 
 
+    @GetMapping("/teacher/{teacherId}")
+    public ResponseEntity<List<SchoolClassResponseDto>> getClassesTaughtByTeacher(@PathVariable String  teacherId){
+        try {
+            List<SchoolClassResponseDto> schoolClassDtoList = schoolClassService.getClassesTaughtByTeacher(UUID.fromString(teacherId));
+            if (Objects.nonNull(schoolClassDtoList)) {
+                return ResponseEntity.ok(schoolClassDtoList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
     @GetMapping("/primary")
     public ResponseEntity<List<SchoolClassResponseDto>> getAllPrimaryClasses(){
         try {

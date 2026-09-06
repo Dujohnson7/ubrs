@@ -1,4 +1,4 @@
-﻿// ===================== TYPES =====================
+// ===================== TYPES =====================
 
 export interface SubjectMark {
   subject: string;
@@ -327,11 +327,11 @@ const generateStudents = (classInfo: ClassInfo): StudentReport[] => {
       // Header Information
       republic: "REPUBLIC OF RWANDA",
       ministry: "MINISTRY OF EDUCATION",
-      district: "Muhanga",
-      school: "GS BUTARE",
+      district: "Nyamagabe",
+      school: "Umwana Bright Academy",
       schoolCode: "270202",
-      email: "gashirana1@gmail.com",
-      phone: "0784717176",
+      email: "wrmouba@gmail.com",
+      phone: "0786124268",
       
       // Student Information
       studentNames: name,
@@ -618,7 +618,6 @@ export const buildStudentReportsFromGrades = (
     r.summary.annual.position = pos;
     delete (r as any).__rankPct;
   });
-  reports.sort((a, b) => a.studentNames.localeCompare(b.studentNames));
 
   return reports;
 };
@@ -626,6 +625,14 @@ export const buildStudentReportsFromGrades = (
 // ===================== GRADE HELPERS =====================
 
 export const getGradeFromPct = (pct: number): string => gradeFromPct(pct);
+
+export const gradeColor = (pct: number) => {
+  if (pct >= 80) return { bg: "#dcfce7", text: "#16a34a" };
+  if (pct >= 70) return { bg: "#dbeafe", text: "#2563eb" };
+  if (pct >= 60) return { bg: "#e0f7fa", text: "#0891b2" };
+  if (pct >= 50) return { bg: "#fef3c7", text: "#d97706" };
+  return { bg: "#fee2e2", text: "#dc2626" };
+};
 
 // ===================== CODE128 BARCODE (scannable) =====================
 /** Patterns for Code 128 values 0–106 (Start B=104, Stop=106). */

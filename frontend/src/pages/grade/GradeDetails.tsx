@@ -44,6 +44,8 @@ export default function GradeDetails() {
   const printReportFormat = () => {
     if (!grade) return;
     
+    const logoSrc = typeof window !== "undefined" ? `${window.location.origin}/images/logo/logo.png` : "/images/logo/logo.png";
+
     const tableRows = filtered.map((d, i) => {
       const pct = grade.maxMark > 0 ? ((d.mark / grade.maxMark) * 100).toFixed(1) + "%" : "—";
       return `
@@ -61,9 +63,15 @@ export default function GradeDetails() {
     const htmlContent = `
       <div style="font-family:'Times New Roman',Times,serif; max-width:900px; margin:0 auto; background:#fff; border:2px solid #000;">
         <!-- HEADER -->
-        <div style="padding:15px;text-align:center;border-bottom:2px solid #000;">
-          <div style="font-size:16px;font-weight:900;text-transform:uppercase;">REPUBLIC OF RWANDA</div>
-          <div style="font-size:14px;font-weight:700;margin-top:4px;">MINISTRY OF EDUCATION</div>
+        <div style="padding:16px 20px; border-bottom:2px solid #000; display:flex; align-items:center; justify-content:space-between; gap:20px;">
+          <img src="${logoSrc}" alt="School Logo" style="width:75px; height:75px; object-fit:contain; border:1px solid #000; padding:4px; background:#fff;" />
+          <div style="text-align:center; flex:1;">
+            <div style="font-size:16px; font-weight:900; letter-spacing:0.5px; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
+            <div style="font-size:16px; font-weight:900; margin-top:2px;">MINISTRY OF EDUCATION</div>
+            <div style="font-size:15px; font-weight:700; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; color:#1e3e6e;">UMWANA BRIGHT ACADEMY</div>
+          
+          </div>
+          <div style="width:75px;"></div>
         </div>
         
         <!-- ACADEMIC INFO -->
