@@ -149,6 +149,57 @@ async function registerParent(parent: ParentStudentRequestDto): Promise<ParentSt
   return parseJsonResponse<ParentStudentResponseDto[]>(response, "Unable to parse create parent response.");
 }
 
+async function getAllParentsStudents(): Promise<UsersResponseDto[]> {
+  const response = await fetch(getApiUrl("/api/userManagement/getParentsStudents"), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load parents");
+    throw new Error(message || "Failed to load parents");
+  }
+
+  return parseJsonResponse<UsersResponseDto[]>(response, "Unable to parse parents data from server.");
+}
+
+async function getParentStudentsByParentId(parentId: string): Promise<ParentStudentResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/userManagement/getParentsStudents/details/${parentId}`), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load parent's students");
+    throw new Error(message || "Failed to load parent's students");
+  }
+
+  return parseJsonResponse<ParentStudentResponseDto[]>(response, "Unable to parse parent's students data from server.");
+}
+
+async function updateParent(parentId: string, parent: ParentStudentRequestDto): Promise<ParentStudentResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/userManagement/update/parentStudent/${parentId}`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(parent),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to update parent");
+    throw new Error(message || "Failed to update parent");
+  }
+
+  toast.success("Parent updated successfully");
+  return parseJsonResponse<ParentStudentResponseDto[]>(response, "Unable to parse update parent response.");
+}
+
 async function updateUser(userId: string, user: UsersRequestDto): Promise<UsersResponseDto> {
   const response = await fetch(getApiUrl(`/api/userManagement/update/${userId}`), {
     method: "PUT",
@@ -243,6 +294,9 @@ export const userService = {
   getUserById,
   registerUser,
   registerParent,
+  getAllParentsStudents,
+  getParentStudentsByParentId,
+  updateParent,
   updateUser,
   changePassword,
   activateUser,

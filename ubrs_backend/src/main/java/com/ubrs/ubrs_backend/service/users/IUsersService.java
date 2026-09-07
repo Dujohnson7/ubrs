@@ -19,7 +19,6 @@ public interface IUsersService {
     UsersResponseDto changePassword( String email, String oldPassword, String newPassword );
     void logoutUser();
 
-    List<ParentStudentResponseDto> createParent(ParentStudentRequestDto requestDto);
     List<ParentStudentResponseDto> getStudentsByParentId(UUID parentId);
     UsersResponseDto updateUser(UUID userId, UsersRequestDto usersDto);
     void deleteUser(UUID userId);
@@ -34,4 +33,11 @@ public interface IUsersService {
 
     long totalTeacher();
     long totalClassTeacher();
+
+
+
+    List<ParentStudentResponseDto> createParent(ParentStudentRequestDto requestDto);
+    List<ParentStudentResponseDto> updateParent(UUID parentId, ParentStudentRequestDto requestDto);
+    List<UsersResponseDto> getAllParentsStudents();
+    List<ParentStudentResponseDto> getAllParentsStudentsByParentId(UUID parentId);
 }

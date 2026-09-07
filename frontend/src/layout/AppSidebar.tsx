@@ -31,6 +31,12 @@ const allNavItems: NavItem[] = [
     roles: [ERole.HEADERTEACHER],
   },
   {
+    name: "Parent Students",
+    icon: <UserCircleIcon />,
+    path: "/parent-students",
+    roles: [ERole.HEADERTEACHER],
+  },
+  {
     icon: <CalenderIcon />,
     name: "Academic",
     path: "/academic-years",
@@ -46,13 +52,25 @@ const allNavItems: NavItem[] = [
     icon: <PageIcon />,
     name: "Courses",
     path: "/courses",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
+    roles: [ERole.HEADERTEACHER],
+  },
+  {
+    icon: <PageIcon />,
+    name: "My Courses",
+    path: "/courses",
+    roles: [ERole.CLASSTEACHER, ERole.TEACHER],
   },
   {
     icon: <UserCircleIcon />,
     name: "Students",
     path: "/students",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER],
+    roles: [ERole.HEADERTEACHER],
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "My Students",
+    path: "/students",
+    roles: [ERole.CLASSTEACHER],
   },
   {
     icon: <TaskIcon />,

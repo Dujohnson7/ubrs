@@ -38,6 +38,37 @@ public class UserManagementController {
         }
     }
 
+
+    @GetMapping( "/getParentsStudents")
+    public ResponseEntity<List<UsersResponseDto>> getAllParentsStudents() {
+        try {
+            List<UsersResponseDto> usersList = usersService.getAllParentsStudents();
+            if (Objects.nonNull(usersList)) {
+                return ResponseEntity.ok(usersList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
+    @GetMapping( "/getParentsStudents/details/{parentId}")
+    public ResponseEntity<List<ParentStudentResponseDto>> getAllParentsStudentsByParent(@PathVariable String parentId) {
+        try {
+            List<ParentStudentResponseDto> usersList = usersService.getAllParentsStudentsByParentId(UUID.fromString(parentId));
+            if (Objects.nonNull(usersList)) {
+                return ResponseEntity.ok(usersList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
     @GetMapping( "/teachers")
     public ResponseEntity<List<UsersResponseDto>> getAllTeachers() {
         try {
@@ -84,6 +115,19 @@ public class UserManagementController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+
+
+
+    @PutMapping("/update/parentStudent/{parentId}")
+    public ResponseEntity<?> updateParent(@PathVariable String parentId, @Valid @RequestBody ParentStudentRequestDto userDto) {
+        try {
+            List<ParentStudentResponseDto> respond =  usersService.updateParent(UUID.fromString(parentId), userDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(respond);
+        } catch(Exception ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
 
 
     @PutMapping("/changePassword/{userId}")
@@ -137,5 +181,7 @@ public class UserManagementController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+
+
 
 }

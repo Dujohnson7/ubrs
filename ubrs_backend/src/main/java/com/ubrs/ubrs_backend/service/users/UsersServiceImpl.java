@@ -1,6 +1,7 @@
  package com.ubrs.ubrs_backend.service.users;
 
 import com.ubrs.ubrs_backend.config.JwtProvider;
+import com.ubrs.ubrs_backend.config.MailMessager;
 import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentResponseDto;
 import com.ubrs.ubrs_backend.domain.dto.users.LoginResponseDto;
@@ -37,8 +38,8 @@ public class UsersServiceImpl implements IUsersService {
 
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
     private final UsersMapper usersMapper;
+    private final MailMessager mailMessager;
 
     private final IParentStudentRepository parentStudentRepository;
     private final IStudentRepository studentRepository;
@@ -77,18 +78,20 @@ public class UsersServiceImpl implements IUsersService {
 
         Users savedUser = userRepository.save(user);
 
-        SimpleMailMessage message = new SimpleMailMessage();
+        //SimpleMailMessage message = new SimpleMailMessage();
 
-        message.setTo(savedUser.getEmail());
-        message.setSubject("UBRS Account Created");
+        //message.setTo(savedUser.getEmail());
+        //message.setSubject("UBRS Account Created");
 
-        message.setText("Your UBRS account has been successfully created.\n\n"
+        String msg = ("Your UBRS account has been successfully created.\n\n"
                         + "Email: " + savedUser.getEmail() + "\n"
                         + "Temporary Password: " + tempPassword + "\n\n"
                         + "Please log in and change your password."
         );
 
-        mailSender.send(message);
+        //mailSender.send(message);
+
+        mailMessager.sendMail(savedUser.getEmail(), "UBRS Account Created", msg);
 
         return usersMapper.toUsersDto(savedUser);
     }
@@ -134,14 +137,16 @@ public class UsersServiceImpl implements IUsersService {
         otpStorage.put(user.getEmail(), otp);
         otpExpiryStorage.put(user.getEmail(), expiry);
 
-        SimpleMailMessage message = new SimpleMailMessage();
+        //SimpleMailMessage message = new SimpleMailMessage();
 
-        message.setTo(user.getEmail());
-        message.setSubject("UBRS Password Reset OTP");
+        //message.setTo(user.getEmail());
+        //message.setSubject("UBRS Password Reset OTP");
 
-        message.setText("Your password reset OTP is: " + otp + "\n\n"+ "This OTP will expire in 5 minutes.");
+        String msg = ("Your password reset OTP is: " + otp + "\n\n"+ "This OTP will expire in 5 minutes.");
 
-        mailSender.send(message);
+        //mailSender.send(message);
+
+        mailMessager.sendMail(user.getEmail(), "UBRS Password Reset OTP", msg);
 
         return usersMapper.toUsersDto(user);
     }
@@ -283,21 +288,87 @@ public class UsersServiceImpl implements IUsersService {
 
         if (tempPassword != null) {
 
-            SimpleMailMessage message = new SimpleMailMessage();
+            //SimpleMailMessage message = new SimpleMailMessage();
 
-            message.setTo(parent.getEmail());
-            message.setSubject("UBRS Parent Account Created");
+            //message.setTo(parent.getEmail());
+            //message.setSubject("UBRS Parent Account Created");
 
-            message.setText("Your UBRS parent account has been successfully created.\n\n"
+            String msg = ("Your UBRS parent account has been successfully created.\n\n"
                             + "Email: " + parent.getEmail() + "\n"
                             + "Temporary Password: " + tempPassword + "\n\n"
                             + "Please log in and change your password."
             );
 
-            mailSender.send(message);
+            //mailSender.send(message);
+
+            mailMessager.sendMail(parent.getEmail(), "UBRS Parent Account Created", msg);
+
         }
 
         return responses;
+    }
+
+    @Override
+    @Transactional
+    public List<ParentStudentResponseDto> updateParent(UUID parentId, ParentStudentRequestDto requestDto) {
+
+        Users parent = userRepository.findById(parentId).orElseThrow(() -> new RuntimeException("Parent not found: " + parentId));
+
+        if (parent.getRole() != ERole.PARENT) {
+            throw new RuntimeException("This user is not a parent");
+        }
+
+        parent.setNames(requestDto.getNames());
+        parent.setEmail(requestDto.getEmail());
+        parent.setPhone(requestDto.getPhone());
+
+        userRepository.save(parent);
+
+        List<ParentStudent> existingRelationships = parentStudentRepository.findAllByParent_Id(parent.getId());
+
+        Set<UUID> requestedStudentIds = new HashSet<>(requestDto.getStudentIds());
+
+        for (ParentStudent parentStudent : existingRelationships) {
+
+            UUID existingStudentId = parentStudent.getStudent().getId();
+
+            if (!requestedStudentIds.contains(existingStudentId)) {
+                parentStudentRepository.delete(parentStudent);
+            }
+        }
+
+        for (UUID studentId : requestedStudentIds) {
+
+            Student student = studentRepository.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found: " + studentId));
+
+            boolean alreadyAssigned = parentStudentRepository.existsByParent_IdAndStudent_Id(parent.getId(), student.getId());
+
+            if (!alreadyAssigned) {
+
+                ParentStudent parentStudent = new ParentStudent();
+
+                parentStudent.setParent(parent);
+                parentStudent.setStudent(student);
+
+                parentStudentRepository.save(parentStudent);
+            }
+        }
+
+        List<ParentStudent> updatedRelationships = parentStudentRepository.findAllByParent_Id(parent.getId());
+
+        return parentStudentMapper.toParentStudentDtoList(updatedRelationships);
+    }
+
+    @Override
+    public List<UsersResponseDto> getAllParentsStudents() {
+        List<Users> parentStudentList = parentStudentRepository.findAllParentsByIsDeleted();
+        return usersMapper.toUsersDtoList(parentStudentList);
+    }
+
+    @Override
+    public List<ParentStudentResponseDto> getAllParentsStudentsByParentId(UUID parentId) {
+        List<ParentStudent> parentStudentList = parentStudentRepository.findAllByParent_IdAndIsDeleted(parentId, false);
+        return parentStudentMapper.toParentStudentDtoList(parentStudentList);
     }
 
     @Override

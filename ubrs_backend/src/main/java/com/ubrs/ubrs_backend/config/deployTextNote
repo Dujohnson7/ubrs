@@ -22,21 +22,14 @@ services:
         value: npg_mguM3XkByn8A
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      # Mail Configuration (Commented out SMTP)
-      # - key: MAIL_HOST
-      #   value: smtp.gmail.com
-      # - key: MAIL_PORT
-      #   value: "587"
-      # - key: MAIL_USERNAME
-      #   value: schoolfeeding.info@gmail.com
-      # - key: MAIL_PASSWORD
-      #   value: vghk tmff cbpd meiy
-
-      # Resend Mail Configuration
-      - key: RESEND_API_KEY
-        value: re_eVofQSKP_3tvnJwNvJdtRhHCnuqyQx6Nm
-      - key: RESEND_FROM_EMAIL
-        value: onboarding@resend.dev
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        value: schoolfeeding.info@gmail.com
+      - key: MAIL_PASSWORD
+        value: vghk tmff cbpd meiy
 
   # =============================================
   # Frontend - Vite/React Static Site

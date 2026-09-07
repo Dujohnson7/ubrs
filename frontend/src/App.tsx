@@ -9,6 +9,10 @@ import UserProfiles from "./pages/UserProfiles";
 import Users from "./pages/users/Users";
 import UsersCreate from "./pages/users/UsersCreate";
 import UsersEdit from "./pages/users/UsersEdit";
+import ParentStudents from "./pages/parentStudents/ParentStudents";
+import ParentStudentsCreate from "./pages/parentStudents/ParentStudentsCreate";
+import ParentStudentsEdit from "./pages/parentStudents/ParentStudentsEdit";
+import ParentStudentsDetails from "./pages/parentStudents/ParentStudentsDetails";
 import AcademicYears from "./pages/academicYear/AcademicYears";
 import AcademicYearsCreate from "./pages/academicYear/AcademicYearsCreate";
 import AcademicYearsEdit from "./pages/academicYear/AcademicYearsEdit";
@@ -59,6 +63,10 @@ export default function App() {
             <Route path="/users" element={<Users />} />
             <Route path="/users/create" element={<UsersCreate />} />
             <Route path="/users/edit" element={<UsersEdit />} />
+            <Route path="/parent-students" element={<ParentStudents />} />
+            <Route path="/parent-students/create" element={<ParentStudentsCreate />} />
+            <Route path="/parent-students/edit" element={<ParentStudentsEdit />} />
+            <Route path="/parent-students/details" element={<ParentStudentsDetails />} />
             <Route path="/academic-years" element={<AcademicYears />} />
             <Route path="/academic-years/create" element={<AcademicYearsCreate />} />
             <Route path="/academic-years/edit" element={<AcademicYearsEdit />} />
