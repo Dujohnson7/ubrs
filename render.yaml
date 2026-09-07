@@ -32,7 +32,7 @@ services:
       # - key: MAIL_PASSWORD
       #   value: vghk tmff cbpd meiy
 
-      # Resend Mail Configuration
+      # Mailjet Mail Configuration
       - key: MAILJET_API_KEY
         value: eaf78ea3896a73441c8cfdda674ff4e3
       - key: MAILJET_SECRET_KEY
