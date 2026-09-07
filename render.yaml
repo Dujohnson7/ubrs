@@ -33,10 +33,16 @@ services:
       #   value: vghk tmff cbpd meiy
 
       # Resend Mail Configuration
-      - key: RESEND_API_KEY
-        value: re_eVofQSKP_3tvnJwNvJdtRhHCnuqyQx6Nm
-      - key: RESEND_FROM_EMAIL
-        value: onboarding@resend.dev
+      - key: MAILJET_API_KEY
+        value: eaf78ea3896a73441c8cfdda674ff4e3
+      - key: MAILJET_SECRET_KEY
+        value: b7b5aaf682504543bed3cf02dc3741f3
+      - key: MAILJET_API_KEY
+        value: eaf78ea3896a73441c8cfdda674ff4e3
+      - key: MAILJET_FROM_EMAIL
+        value: dujohnson777@gmail.com
+      - key: MAILJET_FROM_NAME
+        value: UBRS
 
   # =============================================
   # Frontend - Vite/React Static Site
