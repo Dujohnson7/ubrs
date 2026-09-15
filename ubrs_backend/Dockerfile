@@ -20,8 +20,9 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads/signature /app/uploads/profile && \
+    chmod -R 755 /app/uploads
 
 # Copy the built JAR from the build stage
 COPY --from=build /app/target/*.jar app.jar
