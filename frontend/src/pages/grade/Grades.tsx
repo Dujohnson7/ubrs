@@ -26,6 +26,7 @@ export default function Grades() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [termFilter, setTermFilter] = useState("All");
   const [yearFilter, setYearFilter] = useState("All");
+  const [classFilter, setClassFilter] = useState("All");
 
   const [years, setYears] = useState<AcademicYearResponseDto[]>([]);
   const [page, setPage] = useState(1);
@@ -84,13 +85,14 @@ export default function Grades() {
       if (gradeTypeFilter !== "All" && g.gradeType !== gradeTypeFilter) return false;
       if (statusFilter !== "All" && g.submitStatus !== statusFilter) return false;
       if (termFilter !== "All" && g.term !== termFilter) return false;
+      if (classFilter !== "All" && g.schoolClassName !== classFilter) return false;
       if (!q) return true;
       return [g.gradeId, g.courseName, g.courseCode, g.schoolClassName, g.fiscalYear, g.term]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [grades, search, yearFilter, gradeTypeFilter, statusFilter, termFilter]);
+  }, [grades, search, yearFilter, gradeTypeFilter, statusFilter, termFilter, classFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -120,7 +122,7 @@ export default function Grades() {
         <ComponentCard title="Course Grades" titleClassName="text-xl sm:text-2xl">
           {/* Filters */}
           <div className="rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] items-end">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 items-end">
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Search</label>
                 <Input placeholder="Search..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
@@ -131,6 +133,15 @@ export default function Grades() {
                   <option value="All">All Years</option>
                   {years.map(y => (
                     <option key={y.academicYearId} value={y.academicYearId}>{y.fiscalYear}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Class</label>
+                <select className={selectCls} value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}>
+                  <option value="All">All Classes</option>
+                  {[...new Set(grades.map(g => g.schoolClassName))].sort().map(className => (
+                    <option key={className} value={className}>{className}</option>
                   ))}
                 </select>
               </div>

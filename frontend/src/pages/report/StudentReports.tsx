@@ -31,6 +31,7 @@ export default function StudentReports() {
 
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All Levels");
+  const [classFilter, setClassFilter] = useState("All Classes");
   const [termFilter, setTermFilter] = useState("TERM1");
   const [yearFilter, setYearFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -121,10 +122,11 @@ export default function StudentReports() {
     const q = search.toLowerCase();
     return classesForYear.filter((c) => {
       if (levelFilter !== "All Levels" && !c.classLevel.startsWith(levelFilter)) return false;
+      if (classFilter !== "All Classes" && c.name !== classFilter) return false;
       if (!q) return true;
       return [c.classId, c.name, c.classLevel, c.classTeacher].join(" ").toLowerCase().includes(q);
     });
-  }, [classesForYear, search, levelFilter]);
+  }, [classesForYear, search, levelFilter, classFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -217,7 +219,7 @@ export default function StudentReports() {
            
 
           <div className="rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr] items-end">
+            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr] items-end">
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">
                   Search Classes
@@ -241,6 +243,22 @@ export default function StudentReports() {
                   <option>All Levels</option>
                   <option>Primary</option>
                   <option>Nursery</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">
+                  Class
+                </label>
+                <select
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  value={classFilter}
+                  onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}
+                >
+                  <option>All Classes</option>
+                  {[...new Set(classesForYear.map(c => c.name))].sort().map(className => (
+                    <option key={className} value={className}>{className}</option>
+                  ))}
                 </select>
               </div>
 
