@@ -432,11 +432,18 @@ export const buildStudentReportsFromGrades = (
 ): StudentReport[] => {
   const reportTerm = normalizeReportTerm(reportTermInput || classInfo.term);
   const fullYear = isFullYearReport(reportTerm);
+  const showTerm1InTerm2 = reportTerm === "TERM2";
 
-  // Term 1 / Term 2 â†’ only that term's marks. Term 3 â†’ whole year (all terms).
+  // Term 1 / Term 2 only that term's marks. Term 3 whole year (all terms).
+  // For Term 2, include both Term 1 and Term 2 marks. â†’ only that term's marks. Term 3 â†’ whole year (all terms).
   const scopedRows = fullYear
     ? rows
-    : rows.filter((r) => (r.term || "").toUpperCase() === reportTerm);
+    : showTerm1InTerm2
+      ? rows.filter((r) => {
+          const termKey = (r.term || "").toUpperCase();
+          return termKey === "TERM1" || termKey === "TERM2";
+        })
+      : rows.filter((r) => (r.term || "").toUpperCase() === reportTerm);
 
   type CourseAgg = {
     courseId: string;
@@ -551,16 +558,18 @@ export const buildStudentReportsFromGrades = (
     const annualTOT = subjects.reduce((s, x) => s + x.annual.tot, 0);
     const annualMax = subjects.reduce((s, x) => s + x.maxTOT * (fullYear ? 3 : 1), 0);
     const annualPercentage = annualMax > 0 ? Math.round((annualTOT / annualMax) * 100) : 0;
+    const annualSummary = {
+      totalEU: Math.round(annualEU * 10) / 10,
+      totalET: Math.round(annualET * 10) / 10,
+      totalTOT: Math.round(annualTOT * 10) / 10,
+      percentage: annualPercentage,
+      grade: annualPercentage > 0 ? gradeFromPct(annualPercentage) : "—",
+      position: "—",
+    };
 
     const term1Summary = buildTermSummary("term1");
     const term2Summary = buildTermSummary("term2");
     const term3Summary = buildTermSummary("term3");
-    const displayPct =
-      reportTerm === "TERM1"
-        ? term1Summary.percentage
-        : reportTerm === "TERM2"
-          ? term2Summary.percentage
-          : annualPercentage;
 
     return {
       republic: "REPUBLIC OF RWANDA",
@@ -582,19 +591,12 @@ export const buildStudentReportsFromGrades = (
         term1: term1Summary,
         term2: term2Summary,
         term3: term3Summary,
-        annual: {
-          totalEU: Math.round(annualEU * 10) / 10,
-          totalET: Math.round(annualET * 10) / 10,
-          totalTOT: Math.round(annualTOT * 10) / 10,
-          percentage: annualPercentage,
-          grade: annualPercentage > 0 ? gradeFromPct(annualPercentage) : "—",
-          position: "—",
-        },
+        annual: annualSummary,
       },
       classTeacherComment: "",
       headteacherComment: "",
       finalDecision: fullYear
-        ? annualPercentage >= 50
+        ? annualSummary.percentage >= 50
           ? "Promoted"
           : "Repeated"
         : "Ongoing",
@@ -604,19 +606,39 @@ export const buildStudentReportsFromGrades = (
       headteacherSignature: classInfo.headteacherSignature || "",
       gradingScale,
       abbreviations,
-      // keep for ranking sort below
-      __rankPct: displayPct,
-    } as StudentReport & { __rankPct: number };
+    } as StudentReport;
   });
 
-  reports.sort((a, b) => ((b as any).__rankPct || 0) - ((a as any).__rankPct || 0));
-  reports.forEach((r, idx) => {
-    const pos = `${idx + 1} out of ${reports.length}`;
-    r.summary.term1.position = pos;
-    r.summary.term2.position = pos;
-    r.summary.term3.position = pos;
-    r.summary.annual.position = pos;
-    delete (r as any).__rankPct;
+  // Calculate separate rankings for each term
+  const rankByTerm = (termKey: "term1" | "term2" | "term3" | "annual") => {
+    const positions = new Map<string, string>();
+    const studentsWithMarks = reports.filter(r => r.summary[termKey].percentage > 0);
+    const ranked = [...studentsWithMarks].sort((a, b) => b.summary[termKey].percentage - a.summary[termKey].percentage);
+    
+    ranked.forEach((r, idx) => {
+      positions.set(r.studentNames, `${idx + 1} out of ${studentsWithMarks.length}`);
+    });
+    
+    // Students with no marks get "—"
+    reports.forEach(r => {
+      if (r.summary[termKey].percentage === 0) {
+        positions.set(r.studentNames, "—");
+      }
+    });
+    
+    return positions;
+  };
+
+  const term1Positions = rankByTerm("term1");
+  const term2Positions = rankByTerm("term2");
+  const term3Positions = rankByTerm("term3");
+  const annualPositions = rankByTerm("annual");
+
+  reports.forEach((r) => {
+    r.summary.term1.position = term1Positions.get(r.studentNames) || "—";
+    r.summary.term2.position = term2Positions.get(r.studentNames) || "—";
+    r.summary.term3.position = term3Positions.get(r.studentNames) || "—";
+    r.summary.annual.position = annualPositions.get(r.studentNames) || "—";
   });
 
   return reports;
@@ -695,6 +717,7 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
   const barcodeSVG = generateBarcodeSVG(student.registrationId || student.studentNames);
   const barcodeBase64 = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(barcodeSVG)))}`;
   const fullYear = isFullYearReport(student.reportTerm);
+  const showTerm1InTerm2 = student.reportTerm === "TERM2";
   const termKey = student.reportTerm === "TERM1" ? "term1" : student.reportTerm === "TERM2" ? "term2" : "term3";
   const termLabel = formatReportTermLabel(student.reportTerm);
   const logoSrc = typeof window !== "undefined" ? `${window.location.origin}/images/logo/logo.png` : "/images/logo/logo.png";
@@ -723,6 +746,14 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
 
   const subjectRows = student.subjects.map((subject) => {
     if (!fullYear) {
+      if (showTerm1InTerm2) {
+        return `<tr>
+          ${td(subject.subject, { align: "left", bold: true })}
+          ${td(subject.maxEU)}${td(subject.maxET)}${td(subject.maxTOT)}
+          ${termCells(subject.term1)}
+          ${termCells(subject.term2)}
+        </tr>`;
+      }
       const m = subject[termKey];
       return `<tr>
         ${td(subject.subject, { align: "left", bold: true })}
@@ -748,7 +779,7 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
   const colSpanMax = 3;
   const colSpanTerm = 5;
   const colSpanAnnual = 4;
-  const totalDataCols = fullYear ? colSpanMax + colSpanTerm * 3 + colSpanAnnual : colSpanMax + colSpanTerm;
+  const totalDataCols = fullYear ? colSpanMax + colSpanTerm * 3 + colSpanAnnual : showTerm1InTerm2 ? colSpanMax + colSpanTerm * 2 : colSpanMax + colSpanTerm;
 
   const termSummaryCells = (t: typeof student.summary.term1) =>
     `${td(t.totalEU.toFixed(1))}${td(t.totalET.toFixed(1))}${td(t.totalTOT.toFixed(1))}${td(`${t.percentage}%`, { bold: true })}${td(t.grade, { bold: true })}`;
@@ -763,11 +794,18 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         ${td(conduct.term3 || "")}${td("")}${td(conduct.term3 || "")}${td("")}${td("")}
         ${td(conduct.annual || "")}${td("")}${td("")}${td("")}
       </tr>`
-    : `<tr>
-        ${td("Conduct", { align: "left", bold: true })}
-        ${td("")}${td("")}${td("")}
-        ${td(conduct[termKey] || "")}${td("")}${td(conduct[termKey] || "")}${td("")}${td("")}
-      </tr>`;
+    : showTerm1InTerm2
+      ? `<tr>
+          ${td("Conduct", { align: "left", bold: true })}
+          ${td("")}${td("")}${td("")}
+          ${td(conduct.term1 || "")}${td("")}${td(conduct.term1 || "")}${td("")}${td("")}
+          ${td(conduct.term2 || "")}${td("")}${td(conduct.term2 || "")}${td("")}${td("")}
+        </tr>`
+      : `<tr>
+          ${td("Conduct", { align: "left", bold: true })}
+          ${td("")}${td("")}${td("")}
+          ${td(conduct[termKey] || "")}${td("")}${td(conduct[termKey] || "")}${td("")}${td("")}
+        </tr>`;
 
   const weightRow = fullYear
     ? `<tr>
@@ -778,11 +816,18 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
         ${td("")}${td("")}${td("")}${td("")}
       </tr>`
-    : `<tr>
-        ${td("WEIGHT", { align: "left", bold: true })}
-        ${td("50%")}${td("50%")}${td("100%")}
-        ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
-      </tr>`;
+    : showTerm1InTerm2
+      ? `<tr>
+          ${td("WEIGHT", { align: "left", bold: true })}
+          ${td("50%")}${td("50%")}${td("100%")}
+          ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+          ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+        </tr>`
+      : `<tr>
+          ${td("WEIGHT", { align: "left", bold: true })}
+          ${td("50%")}${td("50%")}${td("100%")}
+          ${td("50%")}${td("50%")}${td("100%")}${td("")}${td("")}
+        </tr>`;
 
   const totalRow = fullYear
     ? `<tr>
@@ -793,11 +838,18 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         ${termSummaryCells(student.summary.term3)}
         ${td(student.summary.annual.totalTOT.toFixed(1))}${td(annualMaxTotal.toFixed(1))}${td(`${student.summary.annual.percentage}%`, { bold: true })}${td(student.summary.annual.grade, { bold: true })}
       </tr>`
-    : `<tr>
-        ${td("Total", { align: "left", bold: true })}
-        ${td(maxEU.toFixed(1))}${td(maxET.toFixed(1))}${td(maxTOT.toFixed(1))}
-        ${termSummaryCells(summary)}
-      </tr>`;
+    : showTerm1InTerm2
+      ? `<tr>
+          ${td("Total", { align: "left", bold: true })}
+          ${td(maxEU.toFixed(1))}${td(maxET.toFixed(1))}${td(maxTOT.toFixed(1))}
+          ${termSummaryCells(student.summary.term1)}
+          ${termSummaryCells(student.summary.term2)}
+        </tr>`
+      : `<tr>
+          ${td("Total", { align: "left", bold: true })}
+          ${td(maxEU.toFixed(1))}${td(maxET.toFixed(1))}${td(maxTOT.toFixed(1))}
+          ${termSummaryCells(summary)}
+        </tr>`;
 
   const spanCell = (content: string, span: number) =>
     `<td colspan="${span}" style="padding:${cellPad};border:1px solid #000;text-align:center;font-size:${cellFont};font-weight:700;">${content}</td>`;
@@ -811,11 +863,18 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         ${spanCell(t3, colSpanTerm)}
         ${spanCell(ann, colSpanAnnual)}
       </tr>`
-    : `<tr>
-        ${td(label, { align: "left", bold: true })}
-        <td colspan="${colSpanMax}" style="padding:${cellPad};border:1px solid #000;"></td>
-        ${spanCell(t1, colSpanTerm)}
-      </tr>`;
+    : showTerm1InTerm2
+      ? `<tr>
+          ${td(label, { align: "left", bold: true })}
+          <td colspan="${colSpanMax}" style="padding:${cellPad};border:1px solid #000;"></td>
+          ${spanCell(t1, colSpanTerm)}
+          ${spanCell(t2, colSpanTerm)}
+        </tr>`
+      : `<tr>
+          ${td(label, { align: "left", bold: true })}
+          <td colspan="${colSpanMax}" style="padding:${cellPad};border:1px solid #000;"></td>
+          ${spanCell(t1, colSpanTerm)}
+        </tr>`;
 
   const thPad = "4px 3px";
   const thSubPad = "2px 2px";
@@ -852,21 +911,43 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
         <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
       </tr>`
-    : `<tr>
-        <th rowspan="2" style="padding:${thPad};border:1px solid #000;font-size:8px;text-align:left;">SUBJECT</th>
-        <th colspan="3" style="padding:${thPad};border:1px solid #000;font-size:8px;">MAXIMUM</th>
-        <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">${termLabel}</th>
-      </tr>
-      <tr>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
-        <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
-      </tr>`;
+    : showTerm1InTerm2
+      ? `<tr>
+          <th rowspan="2" style="padding:${thPad};border:1px solid #000;font-size:8px;text-align:left;">SUBJECT</th>
+          <th colspan="3" style="padding:${thPad};border:1px solid #000;font-size:8px;">MAXIMUM</th>
+          <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">Term 1</th>
+          <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">Term 2</th>
+        </tr>
+        <tr>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
+        </tr>`
+      : `<tr>
+          <th rowspan="2" style="padding:${thPad};border:1px solid #000;font-size:8px;text-align:left;">SUBJECT</th>
+          <th colspan="3" style="padding:${thPad};border:1px solid #000;font-size:8px;">MAXIMUM</th>
+          <th colspan="5" style="padding:${thPad};border:1px solid #000;font-size:8px;">${termLabel}</th>
+        </tr>
+        <tr>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">EU</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">ET</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">TOT</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">%</th>
+          <th style="padding:${thSubPad};border:1px solid #000;font-size:7px;">GR</th>
+        </tr>`;
 
   const gradingScaleRows = `
     <tr>
@@ -912,15 +993,15 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
 ">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 16px 14px;border-bottom:2px solid #000;">
     <div style="display:flex;gap:12px;align-items:flex-start;flex:1.1;">
-      <img src="${logoSrc}" alt="School Logo" style="width:88px;height:88px;object-fit:contain;border:1px solid #000;padding:4px;background:#fff;"/>
+      <img src="${logoSrc}" alt="School Logo" style="width:88px;height:120px;object-fit:contain;border:1px solid #000;padding:4px;background:#fff;"/>
       <div style="font-size:11.5px;line-height:1.5;">
         <div style="font-weight:900;letter-spacing:0.5px;font-size:13px;">${student.republic}</div>
         <div style="font-weight:700;font-size:12px;">${student.ministry}</div>
-        <div>DISTRICT: ${student.district}</div>
-        <div>School: ${student.school}</div>
-        <div>School Code: ${student.schoolCode}</div>
-        <div>E-mail: ${student.email}</div>
-        <div>Phone: ${student.phone}</div>
+        <div>DISTRICT: NYAMAGABE</div>
+        <div>SCHOOL: WRRNO/UMWANA BRIGHT ACADEMY</div>
+        <div>SCHOOL CODE: 251609</div>
+        <div>Email: wrrnouba@gmail.com</div>
+        <div>Phone number: +250786 124269/+250781107910</div>
       </div>
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;">
@@ -956,30 +1037,28 @@ export const buildMarksheetHTML = (student: StudentReport): string => {
         ${totalRow}
         ${spanTermSummary(
           "Percentage",
-          fullYear ? `${student.summary.term1.percentage}%` : `${summary.percentage}%`,
-          `${student.summary.term2.percentage}%`,
-          `${student.summary.term3.percentage}%`,
-          `${student.summary.annual.percentage}%`
+          showTerm1InTerm2 ? `${student.summary.term1.percentage}%` : fullYear ? `${student.summary.term1.percentage}%` : `${summary.percentage}%`,
+          showTerm1InTerm2 ? `${student.summary.term2.percentage}%` : `${student.summary.term2.percentage}%`,
+          showTerm1InTerm2 ? "" : `${student.summary.term3.percentage}%`,
+          showTerm1InTerm2 ? "" : `${student.summary.annual.percentage}%`
         )}
         ${spanTermSummary(
           "Final Grade",
-          fullYear ? student.summary.term1.grade : summary.grade,
-          student.summary.term2.grade,
-          student.summary.term3.grade,
-          student.summary.annual.grade
+          showTerm1InTerm2 ? student.summary.term1.grade : fullYear ? student.summary.term1.grade : summary.grade,
+          showTerm1InTerm2 ? student.summary.term2.grade : student.summary.term2.grade,
+          showTerm1InTerm2 ? "" : student.summary.term3.grade,
+          showTerm1InTerm2 ? "" : student.summary.annual.grade
         )}
         ${spanTermSummary(
           "Position",
-          fullYear ? student.summary.term1.position : summary.position,
-          student.summary.term2.position,
-          student.summary.term3.position,
-          student.summary.annual.position
+          showTerm1InTerm2 ? student.summary.term1.position : fullYear ? student.summary.term1.position : summary.position,
+          showTerm1InTerm2 ? student.summary.term2.position : student.summary.term2.position,
+          showTerm1InTerm2 ? "" : student.summary.term3.position,
+          showTerm1InTerm2 ? "" : student.summary.annual.position
         )}
         <tr>
           <td colspan="${1 + totalDataCols}" style="padding:6px 8px;border:1px solid #000;font-size:8px;vertical-align:top;min-height:40px;">
-            <strong>Comment:</strong><br/>
-            Class Teacher: ${student.classTeacherComment || ""}<br/>
-            Headteacher: ${student.headteacherComment || ""}
+            <strong>Comment:</strong><br/> 
           </td>
         </tr>
         <tr>
