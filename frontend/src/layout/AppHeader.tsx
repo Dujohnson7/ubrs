@@ -20,7 +20,9 @@ function formatCurrency(amount: number): string {
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
   const { user } = useAuth();
-  const isHeaderTeacher = user?.role === ERole.HEADERTEACHER || ERole.ACCOUNTANT || ERole.SCHOOL_BOARD_MANAGER;
+  const isHeaderTeacher = user?.role === ERole.HEADERTEACHER;
+  const isAccountant = user?.role ===  ERole.ACCOUNTANT;
+  const isBoardSchool = user?.role === ERole.SCHOOL_BOARD_MANAGER;
   const { balance, loading: balanceLoading, error: balanceError } = useSchoolBalance();
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -175,7 +177,7 @@ const AppHeader: React.FC = () => {
             isApplicationMenuOpen ? "flex" : "hidden"
           } items-center justify-between w-full gap-3 sm:gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          {isHeaderTeacher && (
+          {(isHeaderTeacher || isAccountant || isBoardSchool) && (
             <Link
               to="/expense-payments"
               title="School Treasury Balance — View Financial Records"

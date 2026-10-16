@@ -3,6 +3,7 @@ import { ERole } from "../../services/authService";
 import HeaderTeacherHome from "./HeaderTeacherHome";
 import TeacherDashboard from "./TeacherDashboard";
 import ParentDashboard from "./ParentDashboard";
+import AccountantDashboard from "./AccountantDashboard";
  
 export default function Home() {
   const { user } = useAuth();
@@ -16,5 +17,10 @@ export default function Home() {
     return <TeacherDashboard />;
   }
 
+  if (role === ERole.ACCOUNTANT) {
+    return <AccountantDashboard />;
+  }
+
   return <HeaderTeacherHome />;
 }
+

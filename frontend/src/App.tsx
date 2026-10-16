@@ -112,7 +112,6 @@ export default function App() {
             <Route path="/parent/reports" element={<ParentReports />} />
             <Route path="/parent-reports" element={<ParentReports />} />
             <Route path="/parent/school-fees" element={<ParentSchoolFees />} />
-            <Route path="/parent/school-fees/breakdown/:studentId" element={<ParentSchoolFeesBreakdown />} />
             <Route path="/parent/school-fees/breakdown" element={<ParentSchoolFeesBreakdown />} />
             <Route path="/parent-school-fees" element={<ParentSchoolFees />} />
             <Route path="/parent/fees" element={<ParentSchoolFees />} />

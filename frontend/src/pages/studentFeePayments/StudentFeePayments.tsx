@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import Badge from "../../components/ui/badge/Badge";
-import { PencilIcon, TrashBinIcon, DollarLineIcon, EyeIcon, DownloadIcon } from "../../icons";
+import { PencilIcon, TrashBinIcon, DollarLineIcon, EyeIcon, DownloadIcon, UserIcon } from "../../icons";
 import { generateReportPdf } from "../../utils/pdfExport";
 import {
   studentFeePaymentService,
@@ -18,6 +18,8 @@ import {
   ESchoolLevel,
 } from "../../services/studentFeePaymentService";
 import { schoolFeesService, SchoolFeesResponseDto } from "../../services/schoolFeesService";
+import { studentService, StudentResponseDto } from "../../services/studentService";
+import { accountantDashboardService } from "../../services/accountantDashboardService";
 import { toast } from "../../utils/toast";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 
@@ -34,6 +36,30 @@ export default function StudentFeePayments() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
+
+  // Direct KPI metrics from AccountantDashboard endpoints
+  const [directMetrics, setDirectMetrics] = useState<{
+    totalCollected: number | null;
+    totalRemaining: number | null;
+    completionRate: number | null;
+    paidCount: number | null;
+    partialCount: number | null;
+    unpaidCount: number | null;
+  }>({
+    totalCollected: null,
+    totalRemaining: null,
+    completionRate: null,
+    paidCount: null,
+    partialCount: null,
+    unpaidCount: null,
+  });
+
+  // Student Filter Dialog state
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const [studentsList, setStudentsList] = useState<StudentResponseDto[]>([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [selectedStudentForFilter, setSelectedStudentForFilter] = useState<StudentResponseDto | null>(null);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   // Delete Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -63,12 +89,23 @@ export default function StudentFeePayments() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [feePaymentsData, schoolFeesData] = await Promise.all([
+      const [feePaymentsData, schoolFeesData, kpis] = await Promise.all([
         studentFeePaymentService.getAllStudentFeePayments().catch(() => []),
         schoolFeesService.getAllSchoolFees().catch(() => []),
+        accountantDashboardService.getDashboardMetrics().catch(() => null),
       ]);
       setPayments(feePaymentsData);
       setSchoolFeesList(schoolFeesData);
+      if (kpis) {
+        setDirectMetrics({
+          totalCollected: kpis.totalAmountCollectedByActive,
+          totalRemaining: kpis.totalAmountPendingReceivableByActive,
+          completionRate: kpis.schoolFeeCompletionRate,
+          paidCount: kpis.totalStudentPaid,
+          partialCount: kpis.totalStudentPartial,
+          unpaidCount: kpis.totalStudentUnpaid,
+        });
+      }
       if (schoolFeesData.length > 0) {
         setValidateSchoolFeesId(schoolFeesData[0].schoolFeesId);
         setImportSchoolFeesId(schoolFeesData[0].schoolFeesId);
@@ -78,6 +115,44 @@ export default function StudentFeePayments() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenStudentModal = async () => {
+    setStudentModalOpen(true);
+    if (studentsList.length === 0) {
+      setLoadingStudents(true);
+      try {
+        const list = await studentService.getAllStudents();
+        setStudentsList(list || []);
+      } catch (err) {
+        console.error("Failed to load students", err);
+        toast.error("Failed to load students list");
+      } finally {
+        setLoadingStudents(false);
+      }
+    }
+  };
+
+  const handleSelectStudent = async (student: StudentResponseDto) => {
+    setStudentModalOpen(false);
+    setSelectedStudentForFilter(student);
+    setLoading(true);
+    try {
+      const records = await studentFeePaymentService.getAllStudentFeePaymentsByStudentId(student.studentId);
+      setPayments(records || []);
+      setPage(1);
+      toast.success(`Loaded fee payments for ${student.firstName} ${student.lastName}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load student fee payments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearStudentFilter = async () => {
+    setSelectedStudentForFilter(null);
+    await loadData();
   };
 
   useEffect(() => {
@@ -383,10 +458,10 @@ export default function StudentFeePayments() {
             </div>
             <div className="mt-4">
               <h3 className="font-extrabold text-2xl text-gray-900 dark:text-white tabular-nums tracking-tight">
-                {formatCurrency(stats.totalCollected)}
+                {formatCurrency(directMetrics.totalCollected ?? stats.totalCollected)}
               </h3>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                From {stats.paidCount + stats.partialCount} contributing students
+                Active Year Fee Collection
               </p>
             </div>
           </div>
@@ -406,10 +481,10 @@ export default function StudentFeePayments() {
             </div>
             <div className="mt-4">
               <h3 className="font-extrabold text-2xl text-amber-800 dark:text-amber-300 tabular-nums tracking-tight">
-                {formatCurrency(stats.totalRemaining)}
+                {formatCurrency(directMetrics.totalRemaining ?? stats.totalRemaining)}
               </h3>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Across {stats.partialCount + stats.unpaidCount} unpaid/partial accounts
+                Active Year Outstanding Balance
               </p>
             </div>
           </div>
@@ -428,10 +503,12 @@ export default function StudentFeePayments() {
             </div>
             <div className="mt-4">
               <h3 className="font-extrabold text-2xl text-blue-800 dark:text-blue-300 tabular-nums tracking-tight">
-                {stats.totalRecords > 0 ? Math.round((stats.paidCount / stats.totalRecords) * 100) : 0}%
+                {directMetrics.completionRate !== null
+                  ? `${Math.round(directMetrics.completionRate)}%`
+                  : `${stats.totalRecords > 0 ? Math.round((stats.paidCount / stats.totalRecords) * 100) : 0}%`}
               </h3>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {stats.paidCount} of {stats.totalRecords} students cleared
+                Settlement progress for Term 1
               </p>
             </div>
           </div>
@@ -444,15 +521,21 @@ export default function StudentFeePayments() {
             <div className="flex items-center gap-2 mt-4">
               <div className="flex-1 text-center p-2 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40">
                 <span className="text-[10px] uppercase font-bold text-green-700 dark:text-green-400 block">Paid</span>
-                <span className="text-base font-bold text-green-800 dark:text-green-300">{stats.paidCount}</span>
+                <span className="text-base font-bold text-green-800 dark:text-green-300">
+                  {directMetrics.paidCount ?? stats.paidCount}
+                </span>
               </div>
               <div className="flex-1 text-center p-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
                 <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 block">Partial</span>
-                <span className="text-base font-bold text-amber-800 dark:text-amber-300">{stats.partialCount}</span>
+                <span className="text-base font-bold text-amber-800 dark:text-amber-300">
+                  {directMetrics.partialCount ?? stats.partialCount}
+                </span>
               </div>
               <div className="flex-1 text-center p-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
                 <span className="text-[10px] uppercase font-bold text-red-700 dark:text-red-400 block">Unpaid</span>
-                <span className="text-base font-bold text-red-800 dark:text-red-300">{stats.unpaidCount}</span>
+                <span className="text-base font-bold text-red-800 dark:text-red-300">
+                  {directMetrics.unpaidCount ?? stats.unpaidCount}
+                </span>
               </div>
             </div>
           </div>
@@ -620,6 +703,17 @@ export default function StudentFeePayments() {
                     </>
                   )}
 
+                  {/* Select Student Action Button */}
+                  <button
+                    type="button"
+                    onClick={handleOpenStudentModal}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 transition shadow-xs cursor-pointer"
+                    title="Select a student to load their payment ledger"
+                  >
+                    <UserIcon className="size-3.5" />
+                    <span>Select Student</span>
+                  </button>
+
                   {/* Download Document Button */}
                   <button
                     type="button"
@@ -641,6 +735,28 @@ export default function StudentFeePayments() {
                   )}
                 </div>
               </div>
+
+              {/* Active Student Filter Banner */}
+              {selectedStudentForFilter && (
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-900 dark:bg-blue-950/30 dark:border-blue-800/60 dark:text-blue-200 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Showing fee payments for:</span>
+                    <span className="font-bold underline text-blue-800 dark:text-blue-300">
+                      {selectedStudentForFilter.firstName} {selectedStudentForFilter.lastName} ({selectedStudentForFilter.studentCode})
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      • Class: {selectedStudentForFilter.schoolClassName || "—"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearStudentFilter}
+                    className="font-semibold text-xs px-2.5 py-1 rounded-lg bg-white border border-blue-300 hover:bg-blue-100 text-blue-700 dark:bg-gray-800 dark:border-blue-700 dark:text-blue-300 transition shadow-2xs cursor-pointer"
+                  >
+                    Clear Filter / Show All Students
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Table Area */}
@@ -1086,6 +1202,101 @@ export default function StudentFeePayments() {
               </Button>
             </div>
           </form>
+        </div>
+      </Modal>
+
+      {/* MODAL 5: Select Student for Fee Payments */}
+      <Modal isOpen={studentModalOpen} onClose={() => setStudentModalOpen(false)} className="max-w-xl p-6">
+        <div className="p-6 space-y-4">
+          <div className="pb-3 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Filter by Student
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Select a student to load their complete fee payment ledger directly from the server.
+            </p>
+          </div>
+
+          {/* Search Box */}
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1 font-medium">
+              Search by Student Name or Code
+            </label>
+            <Input
+              placeholder="Type to search student name or ID..."
+              value={studentSearchQuery}
+              onChange={(e) => setStudentSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {/* Student List */}
+          <div className="max-h-72 overflow-y-auto space-y-2 pr-1 rounded-xl border border-gray-100 dark:border-gray-800 p-2 bg-gray-50/50 dark:bg-white/[0.02]">
+            {loadingStudents ? (
+              <div className="py-8 text-center text-xs text-gray-500">
+                Loading students list...
+              </div>
+            ) : studentsList.length === 0 ? (
+              <div className="py-8 text-center text-xs text-gray-500">
+                No students found.
+              </div>
+            ) : (
+              (() => {
+                const q = studentSearchQuery.toLowerCase().trim();
+                const filteredStudents = studentsList.filter((s) => {
+                  if (!q) return true;
+                  const fullName = `${s.firstName || ""} ${s.lastName || ""}`.toLowerCase();
+                  const code = (s.studentCode || "").toLowerCase();
+                  const cls = (s.schoolClassName || "").toLowerCase();
+                  return fullName.includes(q) || code.includes(q) || cls.includes(q);
+                });
+
+                if (filteredStudents.length === 0) {
+                  return (
+                    <div className="py-8 text-center text-xs text-gray-500">
+                      No students match "{studentSearchQuery}"
+                    </div>
+                  );
+                }
+
+                return filteredStudents.map((student) => (
+                  <div
+                    key={student.studentId}
+                    onClick={() => handleSelectStudent(student)}
+                    className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200/60 bg-white hover:bg-brand-50 hover:border-brand-300 dark:border-gray-700/60 dark:bg-gray-800 dark:hover:bg-brand-950/40 dark:hover:border-brand-700 cursor-pointer transition shadow-2xs group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-8 rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400 flex items-center justify-center text-xs font-bold border border-brand-100 dark:border-brand-900/40 group-hover:bg-brand-600 group-hover:text-white transition">
+                        {(student.firstName || "S").charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white text-xs">
+                          {student.firstName} {student.lastName}
+                        </div>
+                        <div className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
+                          ID: {student.studentCode} • Class: {student.schoolClassName || "—"}
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="text-xs !py-1 !px-2.5">
+                      Select
+                    </Button>
+                  </div>
+                ));
+              })()
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setStudentModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       </Modal>
 

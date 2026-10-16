@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useLocation, useNavigate, Link } from "react-router";
+import { useLocation, useNavigate, Link } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/ui/button/Button";
@@ -17,23 +17,30 @@ import {
   CheckCircleIcon,
   DownloadIcon,
   CalenderIcon,
-  UserCircleIcon,
-  AlertHexaIcon,
 } from "../../icons";
 import { generateReportPdf } from "../../utils/pdfExport";
 import { toast } from "../../utils/toast";
 
 export default function ParentSchoolFeesBreakdown() {
-  const { studentId } = useParams<{ studentId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const passedRecord = location.state?.item as ParentStudentPaymentHistoryProjection | undefined;
+  const itemFromState = location.state?.item as ParentStudentPaymentHistoryProjection | undefined;
+  const passedStudentId = location.state?.studentId || itemFromState?.studentId;
+
+  // Retrieve student record from state or cached in sessionStorage (no ID in URL)
+  const [selectedRecord, setSelectedRecord] = useState<ParentStudentPaymentHistoryProjection | null>(() => {
+    if (itemFromState) {
+      sessionStorage.setItem("parent_selected_fee_breakdown", JSON.stringify(itemFromState));
+      return itemFromState;
+    }
+    const cached = sessionStorage.getItem("parent_selected_fee_breakdown");
+    return cached ? JSON.parse(cached) : null;
+  });
 
   const [paymentRecords, setPaymentRecords] = useState<StudentFeePaymentsResponseDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedFeeRecordId, setSelectedFeeRecordId] = useState<string>("ALL");
 
   const formatCurrency = (amount?: number | null) => {
     return new Intl.NumberFormat("en-US", {
@@ -72,23 +79,17 @@ export default function ParentSchoolFeesBreakdown() {
   };
 
   useEffect(() => {
-    const loadStudentFeeDetails = async () => {
-      const targetStudentId = studentId || passedRecord?.studentId;
-      if (!targetStudentId) {
-        setLoading(false);
-        return;
-      }
+    const targetStudentId = selectedRecord?.studentId || passedStudentId;
+    if (!targetStudentId) {
+      setLoading(false);
+      return;
+    }
 
+    const loadStudentFeeDetails = async () => {
       setLoading(true);
       try {
         const records = await studentFeePaymentService.getAllStudentFeePaymentsByStudentId(targetStudentId);
         setPaymentRecords(records || []);
-
-        if (passedRecord?.schoolFeesId && records.some((r) => r.schoolFees?.schoolFeesId === passedRecord.schoolFeesId)) {
-          setSelectedFeeRecordId(passedRecord.schoolFeesId);
-        } else if (records.length > 0) {
-          setSelectedFeeRecordId(records[0].studentFeePaymentsId || "ALL");
-        }
       } catch (err) {
         console.error("Failed to load student fee breakdown", err);
         toast.error("Unable to load fee breakdown details.");
@@ -99,32 +100,22 @@ export default function ParentSchoolFeesBreakdown() {
     };
 
     void loadStudentFeeDetails();
-  }, [studentId, passedRecord?.studentId, passedRecord?.schoolFeesId]);
+  }, [selectedRecord?.studentId, passedStudentId]);
 
-  // Active or selected payment record
-  const displayedRecords = useMemo(() => {
-    if (selectedFeeRecordId === "ALL") return paymentRecords;
-    return paymentRecords.filter(
-      (r) => r.studentFeePaymentsId === selectedFeeRecordId || r.schoolFees?.schoolFeesId === selectedFeeRecordId
-    );
-  }, [paymentRecords, selectedFeeRecordId]);
-
-  // Overall student summary calculations
+  // Overall student summary
   const studentSummary = useMemo(() => {
-    const studentName = passedRecord
-      ? `${passedRecord.firstName || ""} ${passedRecord.lastName || ""}`.trim()
+    const studentName = selectedRecord
+      ? `${selectedRecord.firstName || ""} ${selectedRecord.lastName || ""}`.trim()
       : paymentRecords[0]?.studentName || "Student";
-    const studentCode = passedRecord?.studentCode || paymentRecords[0]?.studentCode || "—";
+    const studentCode = selectedRecord?.studentCode || paymentRecords[0]?.studentCode || "—";
 
     let totalPaid = 0;
     let totalRemaining = 0;
-    let totalOverdue = 0;
     let totalRequired = 0;
 
     for (const r of paymentRecords) {
       totalPaid += r.totalAmountPaid || 0;
       totalRemaining += r.remainAmount || 0;
-      totalOverdue += r.overDueAmount || 0;
       const targetFee =
         r.studentLevel === "NURSERY"
           ? r.schoolFees?.nurseryFees || 0
@@ -132,9 +123,9 @@ export default function ParentSchoolFeesBreakdown() {
       totalRequired += targetFee > 0 ? targetFee : (r.totalAmountPaid || 0) + (r.remainAmount || 0);
     }
 
-    if (paymentRecords.length === 0 && passedRecord) {
-      totalPaid = passedRecord.totalAmountPaid || 0;
-      totalRemaining = passedRecord.remainAmount || 0;
+    if (paymentRecords.length === 0 && selectedRecord) {
+      totalPaid = selectedRecord.totalAmountPaid || 0;
+      totalRemaining = selectedRecord.remainAmount || 0;
       totalRequired = totalPaid + totalRemaining;
     }
 
@@ -145,15 +136,47 @@ export default function ParentSchoolFeesBreakdown() {
       studentCode,
       totalPaid,
       totalRemaining,
-      totalOverdue,
       totalRequired,
       percentage,
     };
-  }, [paymentRecords, passedRecord]);
+  }, [paymentRecords, selectedRecord]);
+
+  // Flat list of all installment transactions
+  const allInstallments = useMemo(() => {
+    const list: Array<{
+      id: string;
+      fiscalYear: string;
+      term: string;
+      paidDate: string;
+      amountPaid: number;
+      paymentStatus: string;
+    }> = [];
+
+    paymentRecords.forEach((item) => {
+      const year = item.schoolFees?.fiscalYear || "—";
+      const term = formatTermLabel(item.term);
+      const status = item.paymentStatus || "—";
+
+      if (item.studentFeePaymentsDetails && item.studentFeePaymentsDetails.length > 0) {
+        item.studentFeePaymentsDetails.forEach((inst, iIdx) => {
+          list.push({
+            id: inst.studentFeePaymentsDetailId || `${item.studentFeePaymentsId}-${iIdx}`,
+            fiscalYear: year,
+            term,
+            paidDate: inst.paidDate,
+            amountPaid: inst.amountPaid,
+            paymentStatus: status,
+          });
+        });
+      }
+    });
+
+    return list;
+  }, [paymentRecords]);
 
   // PDF Export for this student
   const handleExportStatement = () => {
-    if (paymentRecords.length === 0 && !passedRecord) {
+    if (paymentRecords.length === 0 && !selectedRecord) {
       toast.error("No fee details to export.");
       return;
     }
@@ -162,33 +185,29 @@ export default function ParentSchoolFeesBreakdown() {
     const body: (string | number)[][] = [];
 
     let rowIdx = 1;
-    paymentRecords.forEach((record) => {
-      const year = record.schoolFees?.fiscalYear || "—";
-      const term = formatTermLabel(record.term);
-      const status = record.paymentStatus || "—";
-
-      if (record.studentFeePaymentsDetails && record.studentFeePaymentsDetails.length > 0) {
-        record.studentFeePaymentsDetails.forEach((inst) => {
-          body.push([
-            rowIdx++,
-            year,
-            term,
-            formatDate(inst.paidDate),
-            formatCurrency(inst.amountPaid),
-            status,
-          ]);
-        });
-      } else {
+    if (allInstallments.length > 0) {
+      allInstallments.forEach((inst) => {
         body.push([
           rowIdx++,
-          year,
-          term,
+          inst.fiscalYear,
+          inst.term,
+          formatDate(inst.paidDate),
+          formatCurrency(inst.amountPaid),
+          inst.paymentStatus,
+        ]);
+      });
+    } else {
+      paymentRecords.forEach((record) => {
+        body.push([
+          rowIdx++,
+          record.schoolFees?.fiscalYear || "—",
+          formatTermLabel(record.term),
           "—",
           formatCurrency(record.totalAmountPaid),
-          status,
+          record.paymentStatus || "—",
         ]);
-      }
-    });
+      });
+    }
 
     generateReportPdf({
       title: `Fee Breakdown & Installments Statement - ${studentSummary.studentName}`,
@@ -221,7 +240,7 @@ export default function ParentSchoolFeesBreakdown() {
                 Fee Breakdown & Installments
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Payment history and installment ledger for {studentSummary.studentName}
+                Installment ledger and fee settlement records for {studentSummary.studentName}
               </p>
             </div>
           </div>
@@ -251,22 +270,22 @@ export default function ParentSchoolFeesBreakdown() {
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                     {studentSummary.studentName}
                   </h3>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     ID: {studentSummary.studentCode}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
                   <span>Parent: {user?.names || "Guardian"}</span>
-                  {passedRecord?.fiscalYear ? (
+                  {selectedRecord?.fiscalYear ? (
                     <>
                       <span>•</span>
-                      <span>Academic Year: {passedRecord.fiscalYear}</span>
+                      <span>Academic Year: {selectedRecord.fiscalYear}</span>
                     </>
                   ) : null}
-                  {passedRecord?.term ? (
+                  {selectedRecord?.term ? (
                     <>
                       <span>•</span>
-                      <span>{formatTermLabel(passedRecord.term)}</span>
+                      <span>{formatTermLabel(selectedRecord.term)}</span>
                     </>
                   ) : null}
                 </div>
@@ -283,7 +302,13 @@ export default function ParentSchoolFeesBreakdown() {
               </div>
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 p-3">
                 <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Remaining</span>
-                <div className={`text-sm font-bold mt-0.5 ${studentSummary.totalRemaining > 0 ? "text-red-500 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}>
+                <div
+                  className={`text-sm font-bold mt-0.5 ${
+                    studentSummary.totalRemaining > 0
+                      ? "text-red-500 dark:text-red-400"
+                      : "text-gray-700 dark:text-gray-300"
+                  }`}
+                >
                   {formatCurrency(studentSummary.totalRemaining)}
                 </div>
               </div>
@@ -317,150 +342,188 @@ export default function ParentSchoolFeesBreakdown() {
           </div>
         </div>
 
-        {/* Detailed Fee Payment Blocks */}
-        {loading ? (
-          <ComponentCard>
-            <div className="py-12 text-center text-gray-500 dark:text-gray-400 text-sm">
-              Loading fee payment records...
-            </div>
-          </ComponentCard>
-        ) : paymentRecords.length === 0 ? (
-          <ComponentCard>
-            <div className="py-12 text-center">
-              <DollarLineIcon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600 mb-2" />
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                No installment transactions recorded yet
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Payment history will appear here once installment payments are processed by the school accountant.
-              </p>
-            </div>
-          </ComponentCard>
-        ) : (
-          <div className="space-y-6">
-            {paymentRecords.map((paymentItem, pIdx) => {
-              const targetAmount =
-                paymentItem.studentLevel === "NURSERY"
-                  ? paymentItem.schoolFees?.nurseryFees || 0
-                  : paymentItem.schoolFees?.primaryFees || 0;
+        {/* Table 1: School Fee Terms Summary */}
+        <ComponentCard title="Fee Terms Summary">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50/75 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                  <TableCell isHeader className="w-12 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Academic Year</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Term</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">School Level</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Required Fee</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Paid</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Remaining</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</TableCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
+                      Loading fee summary...
+                    </TableCell>
+                  </TableRow>
+                ) : paymentRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
+                      No fee payment records found for this student.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paymentRecords.map((item, idx) => {
+                    const targetAmount =
+                      item.studentLevel === "NURSERY"
+                        ? item.schoolFees?.nurseryFees || 0
+                        : item.schoolFees?.primaryFees || 0;
+                    const isFullyPaid = item.paymentStatus === "PAID" || (item.remainAmount || 0) <= 0;
 
-              return (
-                <ComponentCard
-                  key={paymentItem.studentFeePaymentsId || pIdx}
-                  title={`${paymentItem.schoolFees?.fiscalYear || "Academic Year"} — ${formatTermLabel(paymentItem.term)}`}
-                  desc={`Level: ${paymentItem.studentLevel || "Primary"} · School Fee: ${formatCurrency(targetAmount)}`}
-                >
-                  <div className="space-y-5">
-                    {/* Fee Summary Banner */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/70 dark:bg-white/[0.02] p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                      <div>
-                        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block">
-                          Term Fee
+                    return (
+                      <TableRow key={item.studentFeePaymentsId || idx} className="hover:bg-gray-50/70 dark:hover:bg-white/[0.02]">
+                        <TableCell className="text-center text-xs text-gray-400 font-medium">
+                          {idx + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="inline-flex items-center gap-1.5 font-medium text-gray-800 dark:text-gray-200 text-sm">
+                            <CalenderIcon className="w-3.5 h-3.5 text-gray-400" />
+                            {item.schoolFees?.fiscalYear || "—"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                            {formatTermLabel(item.term)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                            {item.studentLevel || "Primary"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {formatCurrency(targetAmount || item.totalAmountPaid + item.remainAmount)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-bold text-green-600 dark:text-green-400 text-sm">
+                            {formatCurrency(item.totalAmountPaid)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {isFullyPaid ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 px-2 py-0.5 rounded-full">
+                              <CheckCircleIcon className="w-3.5 h-3.5" />
+                              Settled
+                            </span>
+                          ) : (
+                            <span className="font-bold text-red-500 dark:text-red-400 text-sm">
+                              {formatCurrency(item.remainAmount)}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            color={
+                              item.paymentStatus === "PAID"
+                                ? "success"
+                                : item.paymentStatus === "PARTIAL"
+                                ? "warning"
+                                : "error"
+                            }
+                          >
+                            {item.paymentStatus || "UNPAID"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </ComponentCard>
+
+        {/* Table 2: Installment Transactions Ledger Table */}
+        <ComponentCard title="Installment Payment Ledger">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50/75 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                  <TableCell isHeader className="w-12 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Academic Year & Term</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Payment Date</TableCell>
+                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Receipt / Transaction Ref</TableCell>
+                  <TableCell isHeader className="text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount Paid</TableCell>
+                  <TableCell isHeader className="text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</TableCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
+                      Loading installments...
+                    </TableCell>
+                  </TableRow>
+                ) : allInstallments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
+                      <DollarLineIcon className="mx-auto w-8 h-8 text-gray-400 mb-2" />
+                      <p className="font-medium text-gray-700 dark:text-gray-300">
+                        No installment transactions recorded yet
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Once installment payments are received and recorded by the accountant, they will appear in this ledger.
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  allInstallments.map((inst, idx) => (
+                    <TableRow key={inst.id} className="hover:bg-gray-50/70 dark:hover:bg-white/[0.02]">
+                      <TableCell className="text-center text-xs text-gray-400 font-medium">
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-semibold text-gray-900 dark:text-white text-xs">
+                          {inst.fiscalYear} • {inst.term}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="inline-flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
+                          <CalenderIcon className="w-3.5 h-3.5 text-gray-400" />
+                          {formatDate(inst.paidDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                          {inst.id.slice(0, 8).toUpperCase()}
                         </span>
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                          {formatCurrency(targetAmount || paymentItem.totalAmountPaid + paymentItem.remainAmount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-bold text-green-600 dark:text-green-400 text-sm">
+                          {formatCurrency(inst.amountPaid)}
                         </span>
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block">
-                          Amount Paid
-                        </span>
-                        <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                          {formatCurrency(paymentItem.totalAmountPaid)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block">
-                          Remaining
-                        </span>
-                        <span
-                          className={`text-sm font-bold ${
-                            paymentItem.remainAmount > 0
-                              ? "text-red-500 dark:text-red-400"
-                              : "text-gray-700 dark:text-gray-300"
-                          }`}
-                        >
-                          {formatCurrency(paymentItem.remainAmount)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-                          Status
-                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
                         <Badge
                           color={
-                            paymentItem.paymentStatus === "PAID"
+                            inst.paymentStatus === "PAID"
                               ? "success"
-                              : paymentItem.paymentStatus === "PARTIAL"
+                              : inst.paymentStatus === "PARTIAL"
                               ? "warning"
                               : "error"
                           }
                         >
-                          {paymentItem.paymentStatus}
+                          {inst.paymentStatus}
                         </Badge>
-                      </div>
-                    </div>
-
-                    {/* Installments Table */}
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-800 dark:text-white/90 mb-3 flex items-center gap-2">
-                        <span>Installment History</span>
-                        <span className="text-xs font-normal text-gray-500">
-                          ({paymentItem.studentFeePaymentsDetails?.length || 0} transactions)
-                        </span>
-                      </h4>
-
-                      {paymentItem.studentFeePaymentsDetails &&
-                      paymentItem.studentFeePaymentsDetails.length > 0 ? (
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-gray-50/80 dark:bg-gray-800/50">
-                                <TableCell isHeader className="w-16">#</TableCell>
-                                <TableCell isHeader>Transaction Date</TableCell>
-                                <TableCell isHeader>Receipt Reference</TableCell>
-                                <TableCell isHeader className="text-right">Amount Paid</TableCell>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {paymentItem.studentFeePaymentsDetails.map((inst, instIdx) => (
-                                <TableRow key={inst.studentFeePaymentsDetailId || instIdx}>
-                                  <TableCell className="text-gray-500 font-medium">
-                                    {instIdx + 1}
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200">
-                                      <CalenderIcon className="w-4 h-4 text-gray-400" />
-                                      {formatDate(inst.paidDate)}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                                      {inst.studentFeePaymentsDetailId ? inst.studentFeePaymentsDetailId.slice(0, 8).toUpperCase() : "INST-" + (instIdx + 1)}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <span className="font-bold text-green-600 dark:text-green-400">
-                                      {formatCurrency(inst.amountPaid)}
-                                    </span>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 text-center text-xs text-gray-500 italic">
-                          No installment records breakdown available for this fee entry.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </ComponentCard>
-              );
-            })}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-        )}
+        </ComponentCard>
       </div>
     </>
   );

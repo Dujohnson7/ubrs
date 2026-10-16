@@ -158,10 +158,11 @@ export default function ParentSchoolFees() {
     return filteredHistory.slice(start, start + pageSize);
   }, [filteredHistory, currentPage, pageSize]);
 
-  // Navigate to dedicated Breakdown page
+  // Navigate to dedicated Breakdown page (no ID in URL)
   const handleNavigateToBreakdown = (record: ParentStudentPaymentHistoryProjection) => {
-    navigate(`/parent/school-fees/breakdown/${record.studentId}`, {
-      state: { item: record },
+    sessionStorage.setItem("parent_selected_fee_breakdown", JSON.stringify(record));
+    navigate("/parent/school-fees/breakdown", {
+      state: { item: record, studentId: record.studentId },
     });
   };
 
