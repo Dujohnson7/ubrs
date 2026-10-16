@@ -6,11 +6,20 @@ import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { userService, UsersResponseDto, UsersRequestDto, ERole } from "../../services/userService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function UsersEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageUsers } = useRoleAccess();
   const [item, setItem] = useState<UsersResponseDto | null>(null);
+
+  useEffect(() => {
+    if (!canManageUsers) {
+      navigate("/users");
+      return;
+    }
+  }, [canManageUsers, navigate]);
   const [names, setNames] = useState("");
   const [role, setRole] = useState<ERole>("TEACHER");
   const [phone, setPhone] = useState("");
@@ -109,8 +118,10 @@ export default function UsersEdit() {
                     value={role}
                     onChange={(e) => setRole(e.target.value as ERole)}
                   >
+                  <option value="SCHOOL_BOARD_MANAGER">School Board Manager</option>
                     <option value="HEADERTEACHER">Header Teacher</option> 
                     <option value="TEACHER">Teacher</option>
+                    <option value="ACCOUNTANT">Accountant</option>
                     <option value="PARENT">Parent</option>
                   </select>
                 </div>

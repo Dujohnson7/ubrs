@@ -32,76 +32,22 @@ public class MailMessager {
             .build();
 
 
-    /**
-     * Send email with CC
-     */
-    public void sendMail(
-            String to,
-            String cc,
-            String subject,
-            String body
-    ) {
-
-        send(
-                fromEmail,
-                to,
-                cc,
-                subject,
-                body
-        );
+    public void sendMail(String to, String cc, String subject, String body) {
+        send(fromEmail, to, cc, subject, body);
     }
 
 
-    /**
-     * Send email with custom From address
-     */
-    public void sendMail(
-            String from,
-            String to,
-            String cc,
-            String subject,
-            String body
-    ) {
-
-        send(
-                from,
-                to,
-                cc,
-                subject,
-                body
-        );
+    public void sendMail(String from, String to, String cc, String subject, String body) {
+        send(from, to, cc, subject, body);
     }
 
 
-    /**
-     * Send simple email
-     */
-    public void sendMail(
-            String to,
-            String subject,
-            String body
-    ) {
-
-        send(
-                fromEmail,
-                to,
-                null,
-                subject,
-                body
-        );
+    public void sendMail(String to, String subject, String body) {
+        send(fromEmail, to, null, subject, body);
     }
 
 
-    /**
-     * Internal Mailjet API method
-     */
-    private void send(
-            String from,
-            String to,
-            String cc,
-            String subject,
-            String body
-    ) {
+    private void send(String from, String to, String cc, String subject, String body) {
 
         try {
 
@@ -135,10 +81,7 @@ public class MailMessager {
 
             Map<String, Object> request = new HashMap<>();
 
-            request.put(
-                    "Messages",
-                    new Map[]{message}
-            );
+            request.put("Messages", new Map[]{message});
 
             // Mailjet uses Basic Authentication
             String credentials = apiKey + ":" + secretKey;
@@ -160,22 +103,11 @@ public class MailMessager {
                     .retrieve()
                     .toBodilessEntity();
 
-            log.info(
-                    "Email sent successfully to {}",
-                    to
-            );
+            log.info("Email sent successfully to {}", to);
 
         } catch (Exception e) {
-
-            log.error(
-                    "Failed to send email to {}",
-                    to,
-                    e
-            );
-
-            throw new RuntimeException(
-                    "Unable to send email. Please try again later."
-            );
+            log.error("Failed to send email to {}", to, e);
+            throw new RuntimeException("Unable to send email. Please try again later.");
         }
     }
 }

@@ -1,4 +1,24 @@
-package com.ubrs.ubrs_backend.domain.dto.studentPayments;
+package com.ubrs.ubrs_backend.domain.dto.studentFeePayments;
 
+import com.ubrs.ubrs_backend.util.EPaymentState;
+import com.ubrs.ubrs_backend.util.ESchoolLevel;
+import com.ubrs.ubrs_backend.util.ETerm;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+import java.util.UUID;
+
+@Setter
+@Getter
 public class StudentFeePaymentsRequestDto {
+    private UUID studentId;
+    private UUID schoolFeesId;
+    private ETerm term;
+    private ESchoolLevel studentLevel;
+    private Double totalAmountPaid;
+    private Double remainAmount;
+    private double overDueAmount;
+    private EPaymentState paymentStatus;
+    private List<StudentFeePaymentsDetailRequestDto> studentFeePaymentsDetails;
 }

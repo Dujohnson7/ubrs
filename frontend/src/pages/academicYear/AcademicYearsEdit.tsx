@@ -6,11 +6,20 @@ import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { academicYearService, AcademicYearResponseDto, AcademicYearRequestDto, EAcademicState } from "../../services/academicYearService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function AcademicYearsEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageAcademic } = useRoleAccess();
   const [item, setItem] = useState<AcademicYearResponseDto | null>(null);
+
+  useEffect(() => {
+    if (!canManageAcademic) {
+      navigate("/academic-years");
+      return;
+    }
+  }, [canManageAcademic, navigate]);
   const [fiscalYear, setFiscalYear] = useState("");
   const [eAcademicStatus, setEAcademicStatus] = useState<EAcademicState>("PENDING");
   const [loading, setLoading] = useState(false);

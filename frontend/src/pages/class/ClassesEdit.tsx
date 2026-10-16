@@ -7,11 +7,20 @@ import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { schoolClassService, SchoolClassResponseDto, SchoolClassRequestDto, ESchoolLevel } from "../../services/schoolClassService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function ClassesEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageClasses } = useRoleAccess();
   const [item, setItem] = useState<SchoolClassResponseDto | null>(null);
+
+  useEffect(() => {
+    if (!canManageClasses) {
+      navigate("/classes");
+      return;
+    }
+  }, [canManageClasses, navigate]);
   const [name, setName] = useState("");
   const [classLevel, setClassLevel] = useState<ESchoolLevel>("PRIMARY");
   const [classTeacherId, setClassTeacherId] = useState("");

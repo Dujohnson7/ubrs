@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { useNavigate } from "react-router"; 
 import ComponentCard from "../../components/common/ComponentCard";
-import PageMeta from "../../components/common/PageMeta";
-import Input from "../../components/form/input/InputField";
+import PageMeta from "../../components/common/PageMeta"; 
 import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
 import { courseAssignmentService, CourseAssignmentRequestDto, EAssignmentState } from "../../services/courseAssignmentService";
@@ -11,9 +9,11 @@ import { schoolClassService } from "../../services/schoolClassService";
 import { courseService } from "../../services/courseService";
 import { userService } from "../../services/userService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function AssignmentsCreate() {
   const navigate = useNavigate();
+  const { canManageAssignments } = useRoleAccess();
   const [teacherId, setTeacherId] = useState("");
   const [schoolClassId, setSchoolClassId] = useState("");
   const [courseId, setCourseId] = useState("");
@@ -21,6 +21,12 @@ export default function AssignmentsCreate() {
   const [classes, setClasses] = useState<import("../../services/schoolClassService").SchoolClassResponseDto[]>([]);
   const [courses, setCourses] = useState<import("../../services/courseService").CourseResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canManageAssignments) {
+      navigate("/assignments");
+    }
+  }, [canManageAssignments, navigate]);
 
   useEffect(() => {
     const loadData = async () => {

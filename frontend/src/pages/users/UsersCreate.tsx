@@ -8,9 +8,11 @@ import { userService, UsersRequestDto, ERole, ParentStudentRequestDto } from "..
 import { studentService, StudentResponseDto } from "../../services/studentService";
 import SearchableMultiSelect from "../../components/form/SearchableMultiSelect";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function UsersCreate() {
   const navigate = useNavigate();
+  const { canManageUsers } = useRoleAccess();
   const [names, setNames] = useState("");
   const [role, setRole] = useState<ERole>("TEACHER");
   const [phone, setPhone] = useState("");
@@ -18,6 +20,13 @@ export default function UsersCreate() {
   const [studentIds, setStudentIds] = useState<string[]>([]);
   const [students, setStudents] = useState<StudentResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canManageUsers) {
+      navigate("/users");
+      return;
+    }
+  }, [canManageUsers, navigate]);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -107,7 +116,9 @@ export default function UsersCreate() {
                   value={role}
                   onChange={(e) => setRole(e.target.value as ERole)}
                 >
+                  <option value="SCHOOL_BOARD_MANAGER">School Board Manager</option>
                   <option value="HEADERTEACHER">Header Teacher</option> 
+                  <option value="ACCOUNTANT">Accountant</option>
                   <option value="TEACHER">Teacher</option>
                   <option value="PARENT">Parent</option>
                 </select>

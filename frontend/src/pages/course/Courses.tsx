@@ -10,9 +10,11 @@ import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function Courses() {
   const { user } = useAuth();
+  const { canManageCourses } = useRoleAccess();
   const isAdmin = user?.role === ERole.HEADERTEACHER;
   const isTeacherRole = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
   const [courses, setCourses] = useState<CourseResponseDto[]>([]);
@@ -107,7 +109,7 @@ export default function Courses() {
                   <option value="NURSERY">Nursery</option>
                 </select>
               </div>
-              {!isTeacherRole && (
+              {canManageCourses && (
                 <div className="flex justify-end">
                   <Link to="/courses/create">
                     <Button size="sm">Add Course</Button>
@@ -127,7 +129,9 @@ export default function Courses() {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course Hours</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Level</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    {canManageCourses && (
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -138,19 +142,14 @@ export default function Courses() {
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseName}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseHours}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseLevel}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        <div className="flex flex-wrap gap-2">
-                          {isAdmin && (
-                            <>
-                              <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("courseEditItem", JSON.stringify(item)); navigate("/courses/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                              <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
-                            </>
-                          )}
-                          {isTeacherRole && (
-                            <span className="text-xs text-gray-400 italic">View only</span>
-                          )}
-                        </div>
-                      </TableCell>
+                      {canManageCourses && (
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                          <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("courseEditItem", JSON.stringify(item)); navigate("/courses/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
+                            <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

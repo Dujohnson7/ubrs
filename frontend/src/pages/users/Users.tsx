@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 const columns = [
   { key: "id", label: "#" },
@@ -21,6 +22,7 @@ const columns = [
 ];
 
 export default function Users() {
+  const { canManageUsers } = useRoleAccess();
   const [users, setUsers] = useState<UsersResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -187,7 +189,9 @@ export default function Users() {
                   }}
                 >
                   <option>All Roles</option>
+                  <option value={'SCHOOL_BOARD_MANAGER'}>SCHOOL BOARD MANAGER</option>
                   <option>HEADERTEACHER</option>
+                  <option>ACCOUNTANT</option>
                   <option>CLASSTEACHER</option>
                   <option>TEACHER</option>
                   <option>PARENT</option>
@@ -212,11 +216,13 @@ export default function Users() {
                 </select>
               </div>
 
+              {canManageUsers && (
                 <div className="flex justify-end">
-                <Link to="/users/create">
-                  <Button size="sm">Add User</Button>
-                </Link>
-              </div>
+                  <Link to="/users/create">
+                    <Button size="sm">Add User</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -235,7 +241,9 @@ export default function Users() {
                   <Table>
                     <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                       <TableRow>
-                        {columns.map((column) => (
+                        {columns
+                          .filter((col) => canManageUsers || col.key !== "actions")
+                          .map((column) => (
                           <TableCell
                             key={column.key}
                             isHeader
@@ -256,7 +264,7 @@ export default function Users() {
                             {user.names}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                            {user.role}
+                            {user.role === 'SCHOOL_BOARD_MANAGER' ? 'SCHOOL BOARD MANAGER' : user.role}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                             {user.phone}
@@ -272,63 +280,65 @@ export default function Users() {
                               {user.userStatus ? 'Active' : 'Inactive'}
                             </span>
                           </TableCell>
-                          <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
-                              <div className="flex flex-wrap gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleActivate(user.userId)}
-                                disabled={user.userStatus || loading}
-                                title="Activate"
-                                ariaLabel="Activate"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-green-100/20 !text-green-600 hover:!bg-green-200"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSuspend(user.userId)}
-                                disabled={!user.userStatus || loading}
-                                title="Suspend"
-                                ariaLabel="Suspend"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-red-100/20 !text-red-600 hover:!bg-red-200"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleChangePassword(user.userId)}
-                                title="Change Password"
-                                ariaLabel="Change Password"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-blue-100/20 !text-blue-600 hover:!bg-blue-200"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                startIcon={<PencilIcon className="size-4" />}
-                                onClick={() => {
-                                  sessionStorage.setItem("usersEditUser", JSON.stringify(user));
-                                  navigate("/users/edit", { state: { user } });
-                                }}
-                                title="Edit"
-                                ariaLabel="Edit"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                startIcon={<TrashBinIcon className="size-4" />}
-                                onClick={() => handleDelete(user.userId)}
-                                title="Delete"
-                                ariaLabel="Delete"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200"
-                              />
-                            </div>
-                          </TableCell>
+                          {canManageUsers && (
+                            <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                                <div className="flex flex-wrap gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleActivate(user.userId)}
+                                  disabled={user.userStatus || loading}
+                                  title="Activate"
+                                  ariaLabel="Activate"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-green-100/20 !text-green-600 hover:!bg-green-200"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSuspend(user.userId)}
+                                  disabled={!user.userStatus || loading}
+                                  title="Suspend"
+                                  ariaLabel="Suspend"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-red-100/20 !text-red-600 hover:!bg-red-200"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleChangePassword(user.userId)}
+                                  title="Change Password"
+                                  ariaLabel="Change Password"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-blue-100/20 !text-blue-600 hover:!bg-blue-200"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  startIcon={<PencilIcon className="size-4" />}
+                                  onClick={() => {
+                                    sessionStorage.setItem("usersEditUser", JSON.stringify(user));
+                                    navigate("/users/edit", { state: { user } });
+                                  }}
+                                  title="Edit"
+                                  ariaLabel="Edit"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  startIcon={<TrashBinIcon className="size-4" />}
+                                  onClick={() => handleDelete(user.userId)}
+                                  title="Delete"
+                                  ariaLabel="Delete"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200"
+                                />
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>

@@ -21,5 +21,5 @@ public interface IParentStudentRepository extends JpaRepository<ParentStudent, U
     @Query("SELECT DISTINCT ps.parent FROM ParentStudent ps WHERE ps.isDeleted = false ")
     List<Users> findAllParentsByIsDeleted();
 
-    List<ParentStudent> findAllByStudent_Id(UUID studentId);
+    List<ParentStudent> findAllByStudent_IdAndIsDeleted(UUID studentId, Boolean isDeleted);
 }

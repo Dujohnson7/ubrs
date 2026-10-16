@@ -76,9 +76,9 @@ export default function SchoolReports() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Only HEADERTEACHER may access School Reports
+  // HEADERTEACHER, SCHOOL_BOARD_MANAGER, and ACCOUNTANT may access School Reports
   useEffect(() => {
-    if (user && user.role !== ERole.HEADERTEACHER) {
+    if (user && user.role !== ERole.HEADERTEACHER && user.role !== ERole.SCHOOL_BOARD_MANAGER && user.role !== ERole.ACCOUNTANT) {
       navigate("/", { replace: true });
     }
   }, [user, navigate]);

@@ -10,6 +10,7 @@ import { ApprovalStatus, STATUS_CFG, normalizeApprovalStatus } from "./approvalD
 import { gradeService, ClassGradeDetailProjection } from "../../services/gradeService";
 import { academicYearService } from "../../services/academicYearService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 type SubjectRow = ClassGradeDetailProjection & { status: ApprovalStatus };
 
@@ -25,6 +26,7 @@ function StatusBadge({ status }: { status: ApprovalStatus }) {
 
 export default function ClassSubjectsApproval() {
   const navigate = useNavigate();
+  const { canApproveMarks } = useRoleAccess();
   const location = useLocation();
   const state = location.state as { classId?: string, academicYearId?: string, term?: string, className?: string } | null;
   const classId = state?.classId;
@@ -168,6 +170,19 @@ export default function ClassSubjectsApproval() {
       <PageBreadcrumb pageTitle={`${className} Subjects`} />
 
       <div className="space-y-6">
+        {/* Back Button */}
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate("/marks-approval")}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Marks Approval
+          </button>
+        </div>
         {/* Overall summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -213,16 +228,18 @@ export default function ClassSubjectsApproval() {
               </div>
               
               {/* Approve All Submitted Button in filter panel */}
-              <div className="w-full md:w-auto">
-                <button
-                  onClick={handleBulkApprove}
-                  disabled={stats.submitted === 0 || actingCourseId !== null}
-                  className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  {actingCourseId === "bulk" ? "Approving..." : `Approve All Submitted (${stats.submitted})`}
-                </button>
-              </div>
+              {canApproveMarks && (
+                <div className="w-full md:w-auto">
+                  <button
+                    onClick={handleBulkApprove}
+                    disabled={stats.submitted === 0 || actingCourseId !== null}
+                    className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    {actingCourseId === "bulk" ? "Approving..." : `Approve All Submitted (${stats.submitted})`}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -232,7 +249,7 @@ export default function ClassSubjectsApproval() {
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    {["#","Subject","Teacher","Students","Test Score","Exam Score","Submitted At","Status","Action"].map((h) => (
+                    {["#","Subject","Teacher","Students","Test Score","Exam Score","Submitted At","Status", ...(canApproveMarks ? ["Action"] : [])].map((h) => (
                       <TableCell key={h} isHeader className="px-4 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 whitespace-nowrap">{h}</TableCell>
                     ))}
                   </TableRow>
@@ -240,14 +257,30 @@ export default function ClassSubjectsApproval() {
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginated.length === 0 ? (
                     <TableRow>
-                      <TableCell className="px-5 py-10 text-center text-gray-400" colSpan={10}>No subjects found.</TableCell>
+                      <TableCell className="px-5 py-10 text-center text-gray-400" colSpan={canApproveMarks ? 9 : 8}>No subjects found.</TableCell>
                     </TableRow>
                   ) : paginated.map((s, idx) => {
                     return (
                       <TableRow key={s.courseId} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors">
                         <TableCell className="px-4 py-3.5 text-gray-400 text-xs">{(currentPage - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell className="px-4 py-3.5">
-                          <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{s.subject}</div>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/marks-approval/details/studentGrade`, {
+                              state: {
+                                ...state,
+                                academicYearId: resolvedYearId || state?.academicYearId,
+                                subjectId: s.courseId,
+                                courseName: s.subject,
+                                teacherName: s.teacher,
+                                status: s.status,
+                              },
+                            })}
+                            className="font-semibold text-brand-600 dark:text-brand-400 hover:underline text-sm text-start"
+                            title="Click to view subject marks"
+                          >
+                            {s.subject}
+                          </button>
                         </TableCell>
                         <TableCell className="px-4 py-3.5">
                           <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">{s.teacher}</div>
@@ -259,41 +292,43 @@ export default function ClassSubjectsApproval() {
                           {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString() : <span className="text-gray-300 dark:text-gray-600">—</span>}
                         </TableCell>
                         <TableCell className="px-4 py-3.5"><StatusBadge status={s.status} /></TableCell>
-                        <TableCell className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <button
-                              id={`view-marks-${s.courseId}`}
-                              onClick={() => navigate(`/marks-approval/details/studentGrade`, {
-                                state: {
-                                  ...state,
-                                  academicYearId: resolvedYearId || state?.academicYearId,
-                                  subjectId: s.courseId,
-                                  courseName: s.subject,
-                                  teacherName: s.teacher,
-                                  status: s.status,
-                                },
-                              })}
-                              className="inline-flex items-center justify-center size-8 rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400"
-                              title="View Details"
-                            >
-                              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                            </button>
-                            <button
-                              disabled={s.status !== "submitted" || actingCourseId !== null}
-                              onClick={() => handleApproveSubject(s.courseId)}
-                              className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {actingCourseId === s.courseId ? "..." : "Approve"}
-                            </button>
-                            <button
-                              disabled={s.status !== "submitted" || actingCourseId !== null}
-                              onClick={() => handleRejectSubject(s.courseId)}
-                              className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </TableCell>
+                        {canApproveMarks && (
+                          <TableCell className="px-4 py-3.5">
+                            <div className="flex items-center gap-2">
+                              <button
+                                id={`view-marks-${s.courseId}`}
+                                onClick={() => navigate(`/marks-approval/details/studentGrade`, {
+                                  state: {
+                                    ...state,
+                                    academicYearId: resolvedYearId || state?.academicYearId,
+                                    subjectId: s.courseId,
+                                    courseName: s.subject,
+                                    teacherName: s.teacher,
+                                    status: s.status,
+                                  },
+                                })}
+                                className="inline-flex items-center justify-center size-8 rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400"
+                                title="View Details"
+                              >
+                                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              </button>
+                              <button
+                                disabled={s.status !== "submitted" || actingCourseId !== null}
+                                onClick={() => handleApproveSubject(s.courseId)}
+                                className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {actingCourseId === s.courseId ? "..." : "Approve"}
+                              </button>
+                              <button
+                                disabled={s.status !== "submitted" || actingCourseId !== null}
+                                onClick={() => handleRejectSubject(s.courseId)}
+                                className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}

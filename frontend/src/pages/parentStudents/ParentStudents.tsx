@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, EyeIcon } from "../../icons";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 const columns = [
   { key: "id", label: "#" },
@@ -18,6 +19,7 @@ const columns = [
 ];
 
 export default function ParentStudents() {
+  const { canManageParentStudents } = useRoleAccess();
   const [parents, setParents] = useState<UsersResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -102,11 +104,13 @@ export default function ParentStudents() {
                 </select>
               </div>
 
-              <div className="flex justify-end">
-                <Link to="/parent-students/create">
-                  <Button size="sm">Register Parent</Button>
-                </Link>
-              </div>
+              {canManageParentStudents && (
+                <div className="flex justify-end">
+                  <Link to="/parent-students/create">
+                    <Button size="sm">Register Parent</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -125,7 +129,9 @@ export default function ParentStudents() {
                   <Table>
                     <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                       <TableRow>
-                        {columns.map((column) => (
+                        {columns
+                          .filter((column) => canManageParentStudents || column.key !== "actions")
+                          .map((column) => (
                           <TableCell
                             key={column.key}
                             isHeader
@@ -143,7 +149,16 @@ export default function ParentStudents() {
                             {(currentPage - 1) * pageSize + index + 1}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-800 text-start text-theme-sm dark:text-white/90 font-medium">
-                            {parent.names}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigate("/parent-students/details", { state: { parentId: parent.userId, parentName: parent.names } });
+                              }}
+                              className="hover:underline text-left text-brand-600 dark:text-brand-400 font-semibold"
+                              title="Click to view students"
+                            >
+                              {parent.names}
+                            </button>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                             {parent.email}
@@ -159,32 +174,34 @@ export default function ParentStudents() {
                               {parent.userStatus ? 'Active' : 'Inactive'}
                             </span>
                           </TableCell>
-                          <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
-                            <div className="flex flex-wrap gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                startIcon={<EyeIcon className="size-4" />}
-                                onClick={() => {
-                                  navigate("/parent-students/details", { state: { parentId: parent.userId, parentName: parent.names } });
-                                }}
-                                title="View Students"
-                                ariaLabel="View Students"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                startIcon={<PencilIcon className="size-4" />}
-                                onClick={() => {
-                                  navigate("/parent-students/edit", { state: { parentId: parent.userId } });
-                                }}
-                                title="Edit"
-                                ariaLabel="Edit"
-                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
-                              />
-                            </div>
-                          </TableCell>
+                          {canManageParentStudents && (
+                            <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                              <div className="flex flex-wrap gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  startIcon={<EyeIcon className="size-4" />}
+                                  onClick={() => {
+                                    navigate("/parent-students/details", { state: { parentId: parent.userId, parentName: parent.names } });
+                                  }}
+                                  title="View Students"
+                                  ariaLabel="View Students"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  startIcon={<PencilIcon className="size-4" />}
+                                  onClick={() => {
+                                    navigate("/parent-students/edit", { state: { parentId: parent.userId } });
+                                  }}
+                                  title="Edit"
+                                  ariaLabel="Edit"
+                                  className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
+                                />
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>

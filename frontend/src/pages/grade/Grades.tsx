@@ -11,9 +11,11 @@ import { gradeService, GradeResponseDto } from "../../services/gradeService";
 import { academicYearService, AcademicYearResponseDto } from "../../services/academicYearService";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function Grades() {
   const { user } = useAuth();
+  const { canManageGrades } = useRoleAccess();
   const isAdmin = user?.role === ERole.HEADERTEACHER;
   const isTeacherRole = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
 
@@ -172,19 +174,14 @@ export default function Grades() {
                   <option value="TERM3">Term 3</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-2">
-                {isAdmin || isTeacherRole && <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)}>Upload</Button>}
-                {isAdmin && (
+              {canManageGrades && (
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)}>Upload</Button>
                   <Link to="/grades/create">
                     <Button size="sm">Add Grade</Button>
                   </Link>
-                )}
-                {isTeacherRole && (
-                  <Link to="/grades/create">
-                    <Button size="sm">Add Grade</Button>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -207,20 +204,29 @@ export default function Grades() {
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Students</TableCell>
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Feedback</TableCell>
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
-                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                      {canManageGrades && (
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                     {paginated.length === 0 ? (
                       <TableRow>
-                        <TableCell className="px-5 py-8 text-center text-gray-400 dark:text-gray-600" colSpan={11}>No grade batches found.</TableCell>
+                        <TableCell className="px-5 py-8 text-center text-gray-400 dark:text-gray-600" colSpan={canManageGrades ? 11 : 10}>No grade batches found.</TableCell>
                       </TableRow>
                     ) : paginated.map((item, idx) => (
                       <TableRow key={item.gradeId} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors">
                         <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{(currentPage - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell className="px-5 py-4 text-start text-theme-sm">
-                          <div className="font-medium text-gray-800 dark:text-white/90">{item.courseName}</div>
-                          <div className="text-xs text-gray-400">{item.courseCode}</div>
+                          <button
+                            type="button"
+                            onClick={() => navigate("/grades/details", { state: { grade: item } })}
+                            className="text-start group focus:outline-none"
+                            title="Click to view grade details"
+                          >
+                            <div className="font-medium text-brand-600 dark:text-brand-400 group-hover:underline">{item.courseName}</div>
+                            <div className="text-xs text-gray-400">{item.courseCode}</div>
+                          </button>
                         </TableCell>
                         <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.schoolClassName}</TableCell>
                         <TableCell className="px-5 py-4 text-start text-theme-sm">
@@ -234,20 +240,22 @@ export default function Grades() {
                         <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.gradeDetails?.length ?? 0}</TableCell>
                         <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 max-w-[140px] truncate">{item.feedback || "—"}</TableCell>
                         <TableCell className="px-5 py-4 text-start text-theme-sm">{statusBadge(item.submitStatus)}</TableCell>
-                        <TableCell className="px-5 py-4 text-start text-theme-sm">
-                          <div className="flex gap-2 flex-wrap">
-                            {item.submitStatus === "DRAFT" && (
-                              <>
-                                <Button size="sm" variant="outline" startIcon={<CheckCircleIcon className="size-4" />} onClick={() => handleSubmitGrade(item.gradeId)} title="Submit" ariaLabel="Submit" className="!px-3 !py-2 !text-xs rounded-lg !bg-success-100/30 !text-success-700 hover:!bg-success-200">Submit</Button>
-                                <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => navigate("/grades/edit", { state: { grade: item } })} title="Edit" ariaLabel="Edit" className="!px-3 !py-2 !text-xs rounded-lg !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200">Edit</Button>
-                              </>
-                            )}
-                            <Button size="sm" variant="outline" startIcon={<EyeIcon className="size-4" />} onClick={() => navigate("/grades/details", { state: { grade: item } })} title="View" ariaLabel="View" className="!px-3 !py-2 !text-xs rounded-lg !bg-gray-100 text-gray-700 hover:!bg-gray-200 dark:!bg-gray-800 dark:text-gray-300 dark:hover:!bg-gray-700">View</Button>
-                            {item.submitStatus === "DRAFT" && isAdmin && (
-                              <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.gradeId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
-                            )}
-                          </div>
-                        </TableCell>
+                        {canManageGrades && (
+                          <TableCell className="px-5 py-4 text-start text-theme-sm">
+                            <div className="flex gap-2 flex-wrap">
+                              {item.submitStatus === "DRAFT" && (
+                                <>
+                                  <Button size="sm" variant="outline" startIcon={<CheckCircleIcon className="size-4" />} onClick={() => handleSubmitGrade(item.gradeId)} title="Submit" ariaLabel="Submit" className="!px-3 !py-2 !text-xs rounded-lg !bg-success-100/30 !text-success-700 hover:!bg-success-200">Submit</Button>
+                                  <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => navigate("/grades/edit", { state: { grade: item } })} title="Edit" ariaLabel="Edit" className="!px-3 !py-2 !text-xs rounded-lg !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"></Button>
+                                </>
+                              )}
+                              <Button size="sm" variant="outline" startIcon={<EyeIcon className="size-4" />} onClick={() => navigate("/grades/details", { state: { grade: item } })} title="View" ariaLabel="View" className="!px-3 !py-2 !text-xs rounded-lg !bg-gray-100 text-gray-700 hover:!bg-gray-200 dark:!bg-gray-800 dark:text-gray-300 dark:hover:!bg-gray-700"></Button>
+                              {item.submitStatus === "DRAFT" && isAdmin && (
+                                <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.gradeId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

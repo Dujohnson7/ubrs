@@ -1,5 +1,6 @@
 package com.ubrs.ubrs_backend.service.student;
 
+import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentResponseDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentResponseDto;
 import com.ubrs.ubrs_backend.util.ESchoolLevel;
@@ -18,6 +19,7 @@ public interface IStudentService {
     List<StudentResponseDto> getAllStudentsBySchoolLevel(ESchoolLevel schoolLevel);
     List<StudentResponseDto> getAllStudentsByClass(UUID classId);
     List<StudentResponseDto> getAllStudentsByClassTeacher(UUID teacherId);
+    List<ParentStudentResponseDto> getAllStudentParent(UUID studentId);
     long totalStudents();
     long totalStudentsBySchoolLevel(ESchoolLevel schoolLevel);
     long totalStudentsByClass(UUID classId);

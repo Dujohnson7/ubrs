@@ -11,6 +11,7 @@ import {
 import { studentReportService } from "../../services/studentReportService";
 import { buildStudentReportsFromGrades, printStudentReport, ClassInfo } from "../report/reportPrintUtils";
 import { loadReportSignatories } from "../report/reportSignatures";
+import { DollarLineIcon } from "../../icons";
 import { toast } from "../../utils/toast";
 
 function MetricCard({
@@ -176,7 +177,15 @@ export default function ParentDashboard() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Welcome{user?.names ? `, ${user.names}` : ""}
             </p>
-          </div> 
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/parent/school-fees">
+              <Button size="sm" variant="outline" className="inline-flex items-center gap-2">
+                <DollarLineIcon className="w-4 h-4" />
+                School Fees
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {error ? (

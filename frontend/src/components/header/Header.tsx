@@ -1,14 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeToggleButton } from "../common/ThemeToggleButton";
 import UserDropdown from "./UserDropdown";
 import { Link } from "react-router";
- 
+import { useAuth } from "../../hooks/useAuth";
+import { ERole } from "../../services/authService";
+import { schoolBalanceService, SCHOOL_BALANCE_UPDATED_EVENT } from "../../services/schoolBalanceService";
+
 interface HeaderProps {
-  onClick?: () => void; 
+  onClick?: () => void;
   onToggle: () => void;
 }
+
+const ROLE_BADGE: Record<ERole, { label: string; classes: string }> = {
+  [ERole.HEADERTEACHER]:        { label: "Head Teacher",   classes: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-200 dark:border-violet-800" },
+  [ERole.CLASSTEACHER]:         { label: "Class Teacher",  classes: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800" },
+  [ERole.TEACHER]:              { label: "Teacher",        classes: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800" },
+  [ERole.PARENT]:               { label: "Parent",         classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800" },
+  [ERole.SCHOOL_BOARD_MANAGER]: { label: "Board Manager",  classes: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800" },
+  [ERole.ACCOUNTANT]:           { label: "Accountant",     classes: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800" },
+};
+
+const BALANCE_ROLES = new Set<ERole>([ERole.ACCOUNTANT, ERole.SCHOOL_BOARD_MANAGER, ERole.HEADERTEACHER]);
+
+function formatBalance(n: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
+}
+
 const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const roleBadge = user?.role ? ROLE_BADGE[user.role] : null;
+  const showBalance = user?.role ? BALANCE_ROLES.has(user.role) : false;
+
+  const [balance, setBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!showBalance) return;
+
+    const fetchBalance = async () => {
+      setBalanceLoading(true);
+      try {
+        const data = await schoolBalanceService.getSchoolBalance();
+        setBalance(data.balance ?? 0);
+      } catch {
+        setBalance(null);
+      } finally {
+        setBalanceLoading(false);
+      }
+    };
+
+    fetchBalance();
+
+    const handler = () => { void fetchBalance(); };
+    window.addEventListener(SCHOOL_BALANCE_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(SCHOOL_BALANCE_UPDATED_EVENT, handler);
+  }, [showBalance]);
 
   const toggleApplicationMenu = () => {
     setApplicationMenuOpen(!isApplicationMenuOpen);
@@ -143,17 +190,45 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
             </form>
           </div>
         </div>
+
+        {/* Right-side action bar — always visible on lg, toggled on mobile */}
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          } items-center justify-between w-full gap-3 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex items-center gap-2 2xsm:gap-3">
-            {/* <!-- Dark Mode Toggler --> */}
+          {/* Role Badge — always in right bar */}
+          {roleBadge && (
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide whitespace-nowrap ${roleBadge.classes}`}
+            >
+              {roleBadge.label}
+            </span>
+          )}
+
+          {/* School Balance Badge — only for ACCOUNTANT, SCHOOL_BOARD_MANAGER, HEADERTEACHER */}
+          {showBalance && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+              title="Current school balance"
+            >
+              <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {balanceLoading
+                ? "..."
+                : balance !== null
+                  ? formatBalance(balance)
+                  : "N/A"}
+            </span>
+          )}
+
+          <div className="flex items-center gap-2">
+            {/* Dark Mode Toggler */}
             <ThemeToggleButton />
-            {/* <!-- Dark Mode Toggler --> */} 
           </div>
-          {/* <!-- User Area --> */}
+
+          {/* User Area */}
           <UserDropdown />
         </div>
       </div>

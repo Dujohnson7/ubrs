@@ -4,6 +4,15 @@ import { toast } from "../utils/toast";
 export type EGender = "MALE" | "FEMALE";
 export type EStudentState = "ACTIVE" | "INACTIVE" | "GRADUATED" | "SUSPENDED";
 
+export interface ParentStudentResponseDto {
+  parentId?: string;
+  names?: string;
+  phone?: string;
+  email?: string;
+  relationship?: string;
+  [key: string]: unknown;
+}
+
 export interface StudentRequestDto {
   studentCode: string;
   firstName: string;
@@ -225,6 +234,22 @@ async function deleteStudent(studentId: string): Promise<void> {
   toast.success("Student deleted successfully");
 }
 
+async function getStudentParents(studentId: string): Promise<ParentStudentResponseDto[]> {
+  const response = await fetch(getApiUrl(`/api/student/getParent/${studentId}`), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to load student parents");
+    throw new Error(message || "Failed to load student parents");
+  }
+
+  return parseJsonResponse<ParentStudentResponseDto[]>(response, "Unable to parse student parents data from server.");
+}
+
 export const studentService = {
   getAllStudents,
   getPrimaryStudents,
@@ -236,4 +261,5 @@ export const studentService = {
   importStudents,
   updateStudent,
   deleteStudent,
+  getStudentParents,
 };

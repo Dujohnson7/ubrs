@@ -5,12 +5,14 @@ import PageMeta from "../../components/common/PageMeta";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { gradeService, GradeResponseDto, GradeRequestDto, GradeDetailsRequestDto, GradeType } from "../../services/gradeService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 type StudentRow = { studentId: string; name: string; mark: string };
 
 export default function GradesEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageGrades } = useRoleAccess();
   const [original, setOriginal] = useState<GradeResponseDto | null>(null);
 
   const [term, setTerm] = useState("");
@@ -20,6 +22,11 @@ export default function GradesEdit() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!canManageGrades) {
+      navigate("/grades");
+      return;
+    }
+
     const state = location.state as { grade?: GradeResponseDto } | null;
     const grade = state?.grade ?? (() => {
       const stored = sessionStorage.getItem("gradeEditItem");

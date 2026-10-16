@@ -29,7 +29,7 @@ public class Users extends AbstractBaseEntity {
     @Column(length = 200)
     private String password;
 
-    @Column(length = 15)
+    @Column(length = 25)
     @Enumerated(EnumType.STRING)
     private ERole role;
 

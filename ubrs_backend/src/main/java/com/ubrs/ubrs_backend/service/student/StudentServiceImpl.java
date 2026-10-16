@@ -1,10 +1,14 @@
 package com.ubrs.ubrs_backend.service.student;
 
+import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentResponseDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentResponseDto;
+import com.ubrs.ubrs_backend.domain.entity.ParentStudent;
 import com.ubrs.ubrs_backend.domain.entity.SchoolClass;
 import com.ubrs.ubrs_backend.domain.entity.Student;
+import com.ubrs.ubrs_backend.domain.mapper.ParentStudentMapper;
 import com.ubrs.ubrs_backend.domain.mapper.StudentMapper;
+import com.ubrs.ubrs_backend.repository.IParentStudentRepository;
 import com.ubrs.ubrs_backend.repository.ISchoolClassRepository;
 import com.ubrs.ubrs_backend.repository.IStudentRepository;
 import com.ubrs.ubrs_backend.util.EGender;
@@ -35,7 +39,9 @@ import java.time.format.DateTimeFormatter;
 public class StudentServiceImpl implements IStudentService {
 
     private final ISchoolClassRepository schoolClassRepository;
+    private final IParentStudentRepository parentStudentRepository;
     private final IStudentRepository studentRepository;
+    private final ParentStudentMapper parentStudentMapper;
     private final StudentMapper studentMapper;
 
     @Override
@@ -385,6 +391,12 @@ public class StudentServiceImpl implements IStudentService {
     public List<StudentResponseDto> getAllStudentsByClassTeacher(UUID teacherId) {
         List<Student> studentList = studentRepository.findAllBySchoolClass_ClassTeacher_IdAndStudentStatusAndIsDeleted(teacherId, EStudentState.ACTIVE, false);
         return studentMapper.toStudentDtoList(studentList);
+    }
+
+    @Override
+    public List<ParentStudentResponseDto> getAllStudentParent(UUID studentId) {
+        List<ParentStudent> parentStudentList = parentStudentRepository.findAllByStudent_IdAndIsDeleted(studentId, false);
+        return parentStudentMapper.toParentStudentDtoList(parentStudentList);
     }
 
     @Override

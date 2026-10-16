@@ -10,6 +10,7 @@ import {
   headerTeacherDashboardService,
   HeaderTeacherMetrics,
 } from "../../services/headerTeacherDashboardService";
+import { SCHOOL_BALANCE_UPDATED_EVENT } from "../../services/schoolBalanceService";
 
 /** School / head-teacher overview dashboard — live HeaderTeacherDashboard APIs. */
 export default function HeaderTeacherHome() {
@@ -33,6 +34,14 @@ export default function HeaderTeacherHome() {
       }
     };
     void load();
+
+    const handleBalanceUpdate = () => {
+      void load();
+    };
+    window.addEventListener(SCHOOL_BALANCE_UPDATED_EVENT, handleBalanceUpdate);
+    return () => {
+      window.removeEventListener(SCHOOL_BALANCE_UPDATED_EVENT, handleBalanceUpdate);
+    };
   }, []);
 
   return (

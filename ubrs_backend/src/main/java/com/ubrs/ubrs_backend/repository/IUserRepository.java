@@ -20,7 +20,7 @@ public interface IUserRepository extends JpaRepository<Users, UUID> {
 
     List<Users> findAllByIsDeleted(Boolean isDeleted);
 
-    @Query("SELECT t FROM Users t WHERE t.role IN('TEAACHER','CLASSTEACHER') AND t.isDeleted = false")
+    @Query("SELECT t FROM Users t WHERE t.role IN ('TEACHER','CLASSTEACHER') AND t.isDeleted = false")
     List<Users> findAllTeacher();
 
     List<Users> findAllByRoleAndIsDeleted(ERole role, Boolean isDeleted);

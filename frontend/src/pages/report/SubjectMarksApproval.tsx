@@ -6,6 +6,7 @@ import ComponentCard from "../../components/common/ComponentCard";
 import { gradeService, GradeResponseDto } from "../../services/gradeService";
 import { gradeColor, normalizeApprovalStatus } from "./approvalData";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 type StudentRecord = {
   studentId: string;
@@ -19,6 +20,7 @@ type StudentRecord = {
 
 export default function SubjectMarksApproval() {
   const navigate = useNavigate();
+  const { canApproveMarks } = useRoleAccess();
   const location = useLocation();
   const state = location.state as {
     classId?: string;
@@ -172,7 +174,7 @@ export default function SubjectMarksApproval() {
               </div>
 
               <div className="flex items-center gap-3">
-                {currentStatus !== "approved" && (
+                {canApproveMarks && currentStatus !== "approved" && (
                   <>
                     <input
                       className="h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 text-sm text-gray-800 dark:text-gray-100 focus:outline-none w-48"

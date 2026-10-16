@@ -8,8 +8,10 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function Classes() {
+  const { canManageClasses } = useRoleAccess();
   const [classes, setClasses] = useState<SchoolClassResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -101,11 +103,13 @@ export default function Classes() {
                 </select>
               </div>
 
-              <div className="flex justify-end">
-                <Link to="/classes/create">
-                  <Button size="sm">Add Class</Button>
-                </Link>
-              </div>
+              {canManageClasses && (
+                <div className="flex justify-end">
+                  <Link to="/classes/create">
+                    <Button size="sm">Add Class</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -118,7 +122,9 @@ export default function Classes() {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Level</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class Teacher</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    {canManageClasses && (
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -128,12 +134,14 @@ export default function Classes() {
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.name}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classLevel}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.classTeacherName || "-"}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("classEditItem", JSON.stringify(item)); navigate("/classes/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.schoolClassId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
-                        </div>
-                      </TableCell>
+                      {canManageClasses && (
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                          <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("classEditItem", JSON.stringify(item)); navigate("/classes/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
+                            <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.schoolClassId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

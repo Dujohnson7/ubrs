@@ -8,15 +8,24 @@ import { userService, ParentStudentRequestDto } from "../../services/userService
 import { studentService, StudentResponseDto } from "../../services/studentService";
 import SearchableMultiSelect from "../../components/form/SearchableMultiSelect";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function ParentStudentsCreate() {
   const navigate = useNavigate();
+  const { canManageParentStudents } = useRoleAccess();
   const [names, setNames] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [studentIds, setStudentIds] = useState<string[]>([]);
   const [students, setStudents] = useState<StudentResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canManageParentStudents) {
+      navigate("/parent-students");
+      return;
+    }
+  }, [canManageParentStudents, navigate]);
 
   useEffect(() => {
     const fetchStudents = async () => {

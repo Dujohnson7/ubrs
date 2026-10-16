@@ -7,10 +7,12 @@ import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { courseService, CourseResponseDto, CourseRequestDto, ESchoolLevel } from "../../services/courseService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function CoursesEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageCourses } = useRoleAccess();
   const [item, setItem] = useState<CourseResponseDto | null>(null);
   const [courseCode, setCourseCode] = useState("");
   const [courseName, setCourseName] = useState("");
@@ -19,6 +21,11 @@ export default function CoursesEdit() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!canManageCourses) {
+      navigate("/courses");
+      return;
+    }
+
     const state = location.state as { item?: CourseResponseDto } | null;
     const stored = state?.item ?? (() => {
       const storedValue = sessionStorage.getItem("courseEditItem");

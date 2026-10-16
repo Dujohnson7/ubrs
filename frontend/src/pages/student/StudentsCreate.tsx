@@ -9,9 +9,11 @@ import Button from "../../components/ui/button/Button";
 import { studentService, StudentRequestDto, EGender, EStudentState } from "../../services/studentService";
 import { schoolClassService } from "../../services/schoolClassService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function StudentsCreate() {
   const navigate = useNavigate();
+  const { canManageStudents } = useRoleAccess();
   const [studentCode, setStudentCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -28,6 +30,12 @@ export default function StudentsCreate() {
   const [schoolClassId, setSchoolClassId] = useState("");
   const [classes, setClasses] = useState<import("../../services/schoolClassService").SchoolClassResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canManageStudents) {
+      navigate("/students");
+    }
+  }, [canManageStudents, navigate]);
 
   useEffect(() => {
     const loadClasses = async () => {

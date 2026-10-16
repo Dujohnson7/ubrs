@@ -1,6 +1,6 @@
 package com.ubrs.ubrs_backend.controller.student;
 
-import com.ubrs.ubrs_backend.domain.dto.grade.GradeResponseDto;
+import com.ubrs.ubrs_backend.domain.dto.parent.ParentStudentResponseDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.student.StudentResponseDto;
 import com.ubrs.ubrs_backend.service.student.IStudentService;
@@ -99,6 +99,24 @@ public class StudentController {
             return ResponseEntity.badRequest().body(Collections.emptyList());
         }
     }
+
+
+
+    @GetMapping( "/getParent/{studentId}")
+    public ResponseEntity<List<ParentStudentResponseDto>> getAllStudentParent(@PathVariable String studentId) {
+        try {
+            List<ParentStudentResponseDto> usersList = studentService.getAllStudentParent(UUID.fromString(studentId));
+            if (Objects.nonNull(usersList)) {
+                return ResponseEntity.ok(usersList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
 
 
     @GetMapping("/{studentId}")

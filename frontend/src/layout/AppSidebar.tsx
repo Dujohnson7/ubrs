@@ -28,31 +28,31 @@ const allNavItems: NavItem[] = [
     name: "Users",
     icon: <UserIcon />,
     path: "/users",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER],
   },
   {
     name: "Parent Students",
     icon: <UserCircleIcon />,
     path: "/parent-students",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT],
   },
   {
     icon: <CalenderIcon />,
     name: "Academic",
     path: "/academic-years",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT],
   },
   {
     icon: <ListIcon />,
     name: "Classes",
     path: "/classes",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT],
   },
   {
     icon: <PageIcon />,
     name: "Courses",
     path: "/courses",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER],
   },
   {
     icon: <PageIcon />,
@@ -64,7 +64,7 @@ const allNavItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "Students",
     path: "/students",
-    roles: [ERole.HEADERTEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT],
   },
   {
     icon: <UserCircleIcon />,
@@ -76,34 +76,76 @@ const allNavItems: NavItem[] = [
     icon: <TaskIcon />,
     name: "Assignments",
     path: "/assignments",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER, ERole.SCHOOL_BOARD_MANAGER],
   },
   {
     icon: <PieChartIcon />,
     name: "Grades",
     path: "/grades",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER],
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER, ERole.SCHOOL_BOARD_MANAGER],
   },
   {
     icon: <PageIcon />,
     name: "Marks Approval",
     path: "/marks-approval",
-    roles: [ERole.HEADERTEACHER],
-  },
-  {
-    icon: <TableIcon />,
-    name: "Reports",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER],
-    subItems: [
-      { name: "Student Reports", path: "/student-reports", roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER] },
-      { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER] },
-    ],
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER],
   },
   {
     icon: <TableIcon />,
     name: "Children Reports",
     path: "/parent/reports",
     roles: [ERole.PARENT],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "School Fees",
+    path: "/parent/school-fees",
+    roles: [ERole.PARENT],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "School Fees", 
+    path: "/school-fees",
+    roles: [ERole.ACCOUNTANT],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "School Expenses", 
+    path: "/school-expenses",
+    roles: [ERole.ACCOUNTANT],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "Student Fee Payments", 
+    path: "/student-fee-payments",
+    roles: [ERole.ACCOUNTANT],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "Expense Payments", 
+    path: "/expense-payments",
+    roles: [ERole.ACCOUNTANT],
+  },
+  {
+    icon: <TableIcon />,
+    name: "Reports",
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT],
+    subItems: [
+      { name: "Student Reports", path: "/student-reports", roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT] },
+      { name: "Financial Report", path: "/financial-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT] },
+    ],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "Finance",
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER,   ERole.SCHOOL_BOARD_MANAGER],
+    subItems: [
+      { name: "School Fees", path: "/school-fees", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "Student Fee Payments", path: "/student-fee-payments", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "School Expenses", path: "/school-expenses", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "Expense Payments", path: "/expense-payments", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+    ],
   },
 ];
 
@@ -118,7 +160,13 @@ const AppSidebar: React.FC = () => {
     const role = user?.role;
     if (!role) return allNavItems.filter((n) => !n.roles);
     if (role === ERole.PARENT) {
-      return allNavItems.filter((n) => n.path === "/" || n.path === "/parent/reports" || n.path === "/profile");
+      return allNavItems.filter(
+        (n) =>
+          n.path === "/" ||
+          n.path === "/parent/reports" ||
+          n.path === "/parent/school-fees" ||
+          n.path === "/profile"
+      );
     }
     return allNavItems
       .filter((n) => !n.roles || n.roles.includes(role))
@@ -203,22 +251,19 @@ const AppSidebar: React.FC = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
+              className={`menu-item group ${openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
+                } cursor-pointer ${!isExpanded && !isHovered
                   ? "lg:justify-center"
                   : "lg:justify-start"
-              }`}
+                }`}
             >
               <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                className={`menu-item-icon-size  ${openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
-                }`}
+                  }`}
               >
                 {nav.icon}
               </span>
@@ -227,12 +272,11 @@ const AppSidebar: React.FC = () => {
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
+                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
                       ? "rotate-180 text-brand-500"
                       : ""
-                  }`}
+                    }`}
                 />
               )}
             </button>
@@ -240,16 +284,14 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
+                className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                  }`}
               >
                 <span
-                  className={`menu-item-icon-size ${
-                    isActive(nav.path)
+                  className={`menu-item-icon-size ${isActive(nav.path)
                       ? "menu-item-icon-active"
                       : "menu-item-icon-inactive"
-                  }`}
+                    }`}
                 >
                   {nav.icon}
                 </span>
@@ -277,32 +319,29 @@ const AppSidebar: React.FC = () => {
                   <li key={subItem.name}>
                     <Link
                       to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
+                      className={`menu-dropdown-item ${isActive(subItem.path)
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
-                      }`}
+                        }`}
                     >
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
                           <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
+                            className={`ml-auto ${isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
+                              } menu-dropdown-badge`}
                           >
                             new
                           </span>
                         )}
                         {subItem.pro && (
                           <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
+                            className={`ml-auto ${isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
+                              } menu-dropdown-badge`}
                           >
                             pro
                           </span>
@@ -322,10 +361,9 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
+        ${isExpanded || isMobileOpen
+          ? "w-[290px]"
+          : isHovered
             ? "w-[290px]"
             : "w-[90px]"
         }
@@ -335,9 +373,8 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
+        className={`py-8 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+          }`}
       >
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
@@ -372,11 +409,10 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"
-                }`}
+                  }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu"
@@ -389,11 +425,10 @@ const AppSidebar: React.FC = () => {
             {othersItems.length > 0 && (
               <div className="">
                 <h2
-                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                    !isExpanded && !isHovered
+                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
                       ? "lg:justify-center"
                       : "justify-start"
-                  }`}
+                    }`}
                 >
                   {isExpanded || isHovered || isMobileOpen ? (
                     "Others"

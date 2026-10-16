@@ -9,10 +9,12 @@ import Button from "../../components/ui/button/Button";
 import { studentService, StudentResponseDto, StudentRequestDto, EGender, EStudentState } from "../../services/studentService";
 import { schoolClassService } from "../../services/schoolClassService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function StudentsEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageStudents } = useRoleAccess();
   const [item, setItem] = useState<StudentResponseDto | null>(null);
   const [studentCode, setStudentCode] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -32,6 +34,11 @@ export default function StudentsEdit() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!canManageStudents) {
+      navigate("/students");
+      return;
+    }
+
     const state = location.state as { item?: StudentResponseDto } | null;
     const stored = state?.item ?? (() => {
       const storedValue = sessionStorage.getItem("studentEditItem");

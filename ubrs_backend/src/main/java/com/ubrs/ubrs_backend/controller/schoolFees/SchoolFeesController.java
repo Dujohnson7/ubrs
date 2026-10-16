@@ -1,4 +1,4 @@
-package com.ubrs.ubrs_backend.controller.accountant;
+package com.ubrs.ubrs_backend.controller.schoolFees;
 
 import com.ubrs.ubrs_backend.domain.dto.schoolFees.SchoolFeesRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.schoolFees.SchoolFeesResponseDto;

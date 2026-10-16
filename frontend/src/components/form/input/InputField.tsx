@@ -8,9 +8,9 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
-  min?: string;
-  max?: string;
-  step?: number;
+  min?: string | number;
+  max?: string | number;
+  step?: number | string;
   disabled?: boolean;
   success?: boolean;
   error?: boolean;

@@ -8,8 +8,10 @@ import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { PencilIcon, TrashBinIcon } from "../../icons";
 import { academicYearService, AcademicYearResponseDto, EAcademicState } from "../../services/academicYearService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function AcademicYears() {
+  const { canManageAcademic } = useRoleAccess();
   const [academicYears, setAcademicYears] = useState<AcademicYearResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -126,11 +128,13 @@ export default function AcademicYears() {
                   <option value="DONE">Done</option>
                 </select>
               </div>
-              <div className="flex justify-end">
-                <Link to="/academic-years/create">
-                  <Button size="sm">Add Academic Year</Button>
-                </Link>
-              </div>
+              {canManageAcademic && (
+                <div className="flex justify-end">
+                  <Link to="/academic-years/create">
+                    <Button size="sm">Add Academic Year</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -153,9 +157,11 @@ export default function AcademicYears() {
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                         Status
                       </TableCell>
-                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-end text-theme-xs dark:text-gray-400">
-                        Actions
-                      </TableCell>
+                      {canManageAcademic && (
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-end text-theme-xs dark:text-gray-400">
+                          Actions
+                        </TableCell>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -173,50 +179,52 @@ export default function AcademicYears() {
                             {item.academicYearStatus}
                           </span>
                         </TableCell>
-                        <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
-                          <div className="flex flex-wrap gap-2 justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleActivate(item.academicYearId)}
-                              disabled={item.academicYearStatus === 'ACTIVE' || item.academicYearStatus === 'DONE' || loading}
-                              title="Activate"
-                              ariaLabel="Activate"
-                              className="!px-3 !py-3 !min-w-0 rounded-full !bg-green-100/20 !text-green-600 hover:!bg-green-200"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleComplete(item.academicYearId)}
-                              disabled={item.academicYearStatus === 'DONE' || loading}
-                              title="Complete"
-                              ariaLabel="Complete"
-                              className="!px-3 !py-3 !min-w-0 rounded-full !bg-blue-100/20 !text-blue-600 hover:!bg-blue-200"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="20 6 9 17 4 12"/></svg>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              startIcon={<PencilIcon className="size-4" />}
-                              onClick={() => navigate("/academic-years/edit", { state: { item } })}
-                              title="Edit"
-                              ariaLabel="Edit"
-                              className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
-                            />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              startIcon={<TrashBinIcon className="size-4" />}
-                              onClick={() => handleDelete(item.academicYearId)}
-                              title="Delete"
-                              ariaLabel="Delete"
-                              className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200"
-                            />
-                          </div>
-                        </TableCell>
+                        {canManageAcademic && (
+                          <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                            <div className="flex flex-wrap gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleActivate(item.academicYearId)}
+                                disabled={item.academicYearStatus === 'ACTIVE' || item.academicYearStatus === 'DONE' || loading}
+                                title="Activate"
+                                ariaLabel="Activate"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-green-100/20 !text-green-600 hover:!bg-green-200"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleComplete(item.academicYearId)}
+                                disabled={item.academicYearStatus === 'DONE' || loading}
+                                title="Complete"
+                                ariaLabel="Complete"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-blue-100/20 !text-blue-600 hover:!bg-blue-200"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="20 6 9 17 4 12"/></svg>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                startIcon={<PencilIcon className="size-4" />}
+                                onClick={() => navigate("/academic-years/edit", { state: { item } })}
+                                title="Edit"
+                                ariaLabel="Edit"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                startIcon={<TrashBinIcon className="size-4" />}
+                                onClick={() => handleDelete(item.academicYearId)}
+                                title="Delete"
+                                ariaLabel="Delete"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200"
+                              />
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

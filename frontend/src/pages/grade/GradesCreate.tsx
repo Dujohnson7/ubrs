@@ -11,13 +11,21 @@ import { schoolClassService, SchoolClassResponseDto } from "../../services/schoo
 import { studentService } from "../../services/studentService";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 type StudentRow = { studentId: string; name: string; mark: string };
 
 export default function GradesCreate() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { canManageGrades } = useRoleAccess();
   const isTeacher = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
+
+  useEffect(() => {
+    if (!canManageGrades) {
+      navigate("/grades");
+    }
+  }, [canManageGrades, navigate]);
 
   // Form fields matching GradeRequestDto
   const [academicYearId, setAcademicYearId] = useState("");

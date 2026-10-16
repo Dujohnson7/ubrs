@@ -4,9 +4,24 @@ import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton"; 
 import UserDropdown from "../components/header/UserDropdown";
+import { useAuth } from "../hooks/useAuth";
+import { ERole } from "../services/authService";
+import { useSchoolBalance } from "../hooks/useSchoolBalance";
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "RWF",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const isHeaderTeacher = user?.role === ERole.HEADERTEACHER || ERole.ACCOUNTANT || ERole.SCHOOL_BOARD_MANAGER;
+  const { balance, loading: balanceLoading, error: balanceError } = useSchoolBalance();
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
 
@@ -158,8 +173,44 @@ const AppHeader: React.FC = () => {
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          } items-center justify-between w-full gap-3 sm:gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
+          {isHeaderTeacher && (
+            <Link
+              to="/expense-payments"
+              title="School Treasury Balance — View Financial Records"
+              className="flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 rounded-xl border border-emerald-500/20 bg-emerald-50/70 hover:bg-emerald-100/70 dark:bg-emerald-950/30 dark:border-emerald-500/30 dark:hover:bg-emerald-950/50 transition-all duration-200 shadow-xs group"
+            >
+              <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 7.5V18a2.5 2.5 0 0 1-2.5 2.5H5.5A2.5 2.5 0 0 1 3 18V6a2.5 2.5 0 0 1 2.5-2.5H18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M18 3.5a2.5 2.5 0 0 1 2.5 2.5v1.5H16a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="17.5" cy="10.5" r=".75" fill="currentColor" />
+                </svg>
+              </div>
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1.5 leading-none">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    School Balance
+                  </span>
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white tabular-nums leading-tight mt-0.5">
+                  {balanceLoading ? (
+                    <span className="inline-block w-16 h-3.5 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
+                  ) : balanceError ? (
+                    <span className="text-xs text-red-500">Unavailable</span>
+                  ) : (
+                    formatCurrency(balance ?? 0)
+                  )}
+                </span>
+              </div>
+            </Link>
+          )}
+
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />

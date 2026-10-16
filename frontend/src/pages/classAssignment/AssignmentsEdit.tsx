@@ -10,10 +10,12 @@ import { schoolClassService } from "../../services/schoolClassService";
 import { courseService } from "../../services/courseService";
 import { userService } from "../../services/userService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function AssignmentsEdit() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canManageAssignments } = useRoleAccess();
   const [item, setItem] = useState<CourseAssignmentResponseDto | null>(null);
   const [teacherId, setTeacherId] = useState("");
   const [schoolClassId, setSchoolClassId] = useState("");
@@ -24,6 +26,11 @@ export default function AssignmentsEdit() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!canManageAssignments) {
+      navigate("/assignments");
+      return;
+    }
+
     const state = location.state as { item?: CourseAssignmentResponseDto } | null;
     const stored = state?.item ?? (() => {
       const storedValue = sessionStorage.getItem("assignmentEditItem");

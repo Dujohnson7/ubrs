@@ -2,6 +2,7 @@ import { getApiUrl } from "../config/api";
 import { AcademicYearResponseDto } from "./academicYearService";
 import { schoolClassService } from "./schoolClassService";
 import { gradeService, ClassGradeStatusProjection } from "./gradeService";
+import { schoolBalanceService } from "./schoolBalanceService";
 
 export interface HeaderTeacherMetrics {
   totalStudents: number;
@@ -20,6 +21,7 @@ export interface HeaderTeacherMetrics {
   marksSubmitted: number;
   marksPending: number;
   marksRejected: number;
+  schoolBalance: number;
 }
 
 export interface SubjectLevelData {
@@ -142,6 +144,7 @@ async function getDashboardMetrics(): Promise<HeaderTeacherMetrics> {
     activeAcademicYear,
     classes,
     gradeStatus,
+    balanceData,
   ] = await Promise.all([
     fetchLong("/api/headerTeacherDashboard/totalStudents").catch(() => 0),
     fetchLong("/api/headerTeacherDashboard/totalStudents/nursery").catch(() => 0),
@@ -155,6 +158,7 @@ async function getDashboardMetrics(): Promise<HeaderTeacherMetrics> {
     getActiveAcademicYear(),
     schoolClassService.getAllSchoolClasses().catch(() => []),
     gradeService.getClassGradeStatus().catch(() => [] as ClassGradeStatusProjection[]),
+    schoolBalanceService.getSchoolBalance().catch(() => ({ balance: 0 })),
   ]);
 
   const approval = summarizeApprovals(gradeStatus);
@@ -176,6 +180,7 @@ async function getDashboardMetrics(): Promise<HeaderTeacherMetrics> {
     marksSubmitted: approval.submitted,
     marksPending: approval.pending,
     marksRejected: approval.rejected,
+    schoolBalance: Number(balanceData?.balance) || 0,
   };
 }
 

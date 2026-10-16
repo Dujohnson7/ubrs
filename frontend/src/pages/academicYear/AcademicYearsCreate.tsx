@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
@@ -6,11 +6,20 @@ import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { academicYearService, AcademicYearRequestDto } from "../../services/academicYearService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function AcademicYearsCreate() {
   const navigate = useNavigate();
+  const { canManageAcademic } = useRoleAccess();
   const [fiscalYear, setFiscalYear] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canManageAcademic) {
+      navigate("/academic-years");
+      return;
+    }
+  }, [canManageAcademic, navigate]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -12,9 +12,11 @@ import { PencilIcon, TrashBinIcon, CloseIcon } from "../../icons";
 import { toast } from "../../utils/toast";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function Assignments() {
   const { user } = useAuth();
+  const { canManageAssignments } = useRoleAccess();
   const isAdmin = user?.role === ERole.HEADERTEACHER;
   const isTeacherRole = user?.role === ERole.TEACHER || user?.role === ERole.CLASSTEACHER;
 
@@ -179,7 +181,7 @@ export default function Assignments() {
                   ))}
                 </select>
               </div>
-              {isAdmin && (
+              {canManageAssignments && (
                 <div className="flex justify-end">
                   <Link to="/assignments/create">
                     <Button size="sm">Add Assignment</Button>
@@ -221,7 +223,9 @@ export default function Assignments() {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Assignment Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Closed Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    {canManageAssignments && (
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -242,20 +246,15 @@ export default function Assignments() {
                           {item.assignmentStatus}
                         </span>
                       </TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        <div className="flex flex-wrap gap-2">
-                          {isAdmin && (
-                            <>
-                              <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("assignmentEditItem", JSON.stringify(item)); navigate("/assignments/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                              <Button size="sm" variant="outline" startIcon={<CloseIcon className="size-4" />} onClick={() => handleCloseAssignment(item.courseAssignmentId)} disabled={item.assignmentStatus === EAssignmentState.CLOSED} title="Close Assignment" ariaLabel="Close Assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" />
-                              <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseAssignmentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
-                            </>
-                          )}
-                          {isTeacherRole && (
-                            <span className="text-xs text-gray-400 italic">View only</span>
-                          )}
-                        </div>
-                      </TableCell>
+                      {canManageAssignments && (
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                          <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("assignmentEditItem", JSON.stringify(item)); navigate("/assignments/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
+                            <Button size="sm" variant="outline" startIcon={<CloseIcon className="size-4" />} onClick={() => handleCloseAssignment(item.courseAssignmentId)} disabled={item.assignmentStatus === EAssignmentState.CLOSED} title="Close Assignment" ariaLabel="Close Assignment" className="!px-3 !py-3 !min-w-0 rounded-full !bg-warning-100/20 !text-warning-600 hover:!bg-warning-200" />
+                            <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.courseAssignmentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

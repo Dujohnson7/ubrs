@@ -42,7 +42,23 @@ import MarksApproval from "./pages/report/MarksApproval";
 import ClassSubjectsApproval from "./pages/report/ClassSubjectsApproval";
 import SubjectMarksApproval from "./pages/report/SubjectMarksApproval";
 import SchoolReports from "./pages/report/SchoolReports";
+import FinancialReport from "./pages/report/FinancialReport";
 import ParentReports from "./pages/report/ParentReports";
+import SchoolFees from "./pages/schoolFees/SchoolFees";
+import SchoolFeesCreate from "./pages/schoolFees/SchoolFeesCreate";
+import SchoolFeesEdit from "./pages/schoolFees/SchoolFeesEdit";
+import ParentSchoolFees from "./pages/schoolFees/ParentSchoolFees";
+import ParentSchoolFeesBreakdown from "./pages/schoolFees/ParentSchoolFeesBreakdown";
+import SchoolExpenses from "./pages/schoolExpense/SchoolExpenses";
+import SchoolExpensesCreate from "./pages/schoolExpense/SchoolExpensesCreate";
+import SchoolExpensesEdit from "./pages/schoolExpense/SchoolExpensesEdit";
+import ExpensesPayments from "./pages/expensesPayments/ExpensesPayments";
+import ExpensesPaymentsCreate from "./pages/expensesPayments/ExpensesPaymentsCreate";
+import ExpensesPaymentsEdit from "./pages/expensesPayments/ExpensesPaymentsEdit";
+import StudentFeePayments from "./pages/studentFeePayments/StudentFeePayments";
+import StudentFeePaymentsCreate from "./pages/studentFeePayments/StudentFeePaymentsCreate";
+import StudentFeePaymentsEdit from "./pages/studentFeePayments/StudentFeePaymentsEdit";
+import StudentFeePaymentsInstallments from "./pages/studentFeePayments/StudentFeePaymentsInstallments";
 import { AuthProvider } from "./context/AuthContext";
 import ToastContainer from "./components/common/ToastContainer";
 
@@ -92,8 +108,29 @@ export default function App() {
             <Route path="/marks-approval/details" element={<ClassSubjectsApproval />} />
             <Route path="/marks-approval/details/studentGrade" element={<SubjectMarksApproval />} />
             <Route path="/school-report" element={<SchoolReports />} />
+            <Route path="/financial-report" element={<FinancialReport />} />
             <Route path="/parent/reports" element={<ParentReports />} />
             <Route path="/parent-reports" element={<ParentReports />} />
+            <Route path="/parent/school-fees" element={<ParentSchoolFees />} />
+            <Route path="/parent/school-fees/breakdown/:studentId" element={<ParentSchoolFeesBreakdown />} />
+            <Route path="/parent/school-fees/breakdown" element={<ParentSchoolFeesBreakdown />} />
+            <Route path="/parent-school-fees" element={<ParentSchoolFees />} />
+            <Route path="/parent/fees" element={<ParentSchoolFees />} />
+            <Route path="/parent-fees" element={<ParentSchoolFees />} />
+            <Route path="/school-fees" element={<SchoolFees />} />
+            <Route path="/school-fees/create" element={<SchoolFeesCreate />} />
+            <Route path="/school-fees/edit" element={<SchoolFeesEdit />} />
+            <Route path="/school-expenses" element={<SchoolExpenses />} />
+            <Route path="/school-expenses/create" element={<SchoolExpensesCreate />} />
+            <Route path="/school-expenses/edit" element={<SchoolExpensesEdit />} />
+            <Route path="/expense-payments" element={<ExpensesPayments />} />
+            <Route path="/expense-payments/create" element={<ExpensesPaymentsCreate />} />
+            <Route path="/expense-payments/edit" element={<ExpensesPaymentsEdit />} />
+            <Route path="/student-fee-payments" element={<StudentFeePayments />} />
+            <Route path="/student-fee-payments/create" element={<StudentFeePaymentsCreate />} />
+            <Route path="/student-fee-payments/edit" element={<StudentFeePaymentsEdit />} />
+            <Route path="/student-fee-payments/installments" element={<StudentFeePaymentsInstallments />} />
+            <Route path="/student-fee-payments/installments/:id" element={<StudentFeePaymentsInstallments />} />
             <Route path="/calendar" element={<Calendar />} /> 
           </Route>
 

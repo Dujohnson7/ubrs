@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
-import { studentService, StudentResponseDto, EGender, EStudentState } from "../../services/studentService";
+import { studentService, StudentResponseDto, EGender, EStudentState, ParentStudentResponseDto } from "../../services/studentService";
 import { schoolClassService } from "../../services/schoolClassService";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
@@ -13,6 +13,7 @@ import { Modal } from "../../components/ui/modal";
 import { toast } from "../../utils/toast";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const { user } = useAuth();
@@ -91,8 +92,89 @@ function StudentsUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; 
   );
 }
 
+function StudentParentsModal({ isOpen, onClose, student }: { isOpen: boolean; onClose: () => void; student: StudentResponseDto | null }) {
+  const [parents, setParents] = useState<ParentStudentResponseDto[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !student) return;
+    setLoading(true);
+    studentService.getStudentParents(student.studentId)
+      .then(setParents)
+      .catch(() => setParents([]))
+      .finally(() => setLoading(false));
+  }, [isOpen, student]);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-lg p-6 sm:p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">
+            Parents / Guardians
+          </h3>
+          {student && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {student.firstName} {student.middleName} {student.lastName} &mdash; {student.studentCode}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          className="flex items-center justify-center size-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      {loading ? (
+        <div className="py-10 text-center text-gray-400 text-sm">Loading parents...</div>
+      ) : parents.length === 0 ? (
+        <div className="py-10 text-center">
+          <div className="mx-auto mb-3 flex items-center justify-center size-12 rounded-full bg-gray-100 dark:bg-gray-800">
+            <svg className="size-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </div>
+          <p className="text-sm text-gray-400">No parents/guardians found for this student.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {parents.map((p, i) => (
+            <div key={p.parentId || i} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center size-10 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 font-bold text-sm shrink-0">
+                  {p.names?.charAt(0)?.toUpperCase() || "P"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-800 dark:text-white/90 text-sm">{p.names || "—"}</p>
+                  {p.relationship && <p className="text-xs text-brand-600 dark:text-brand-400 font-medium mt-0.5">{p.relationship}</p>}
+                  <div className="mt-2 flex flex-col gap-1">
+                    {p.phone && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        {p.phone}
+                      </div>
+                    )}
+                    {p.email && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        {p.email}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-6 flex justify-end">
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      </div>
+    </Modal>
+  );
+}
+
 export default function Students() {
   const { user } = useAuth();
+  const { canManageStudents } = useRoleAccess();
   const isClassTeacher = user?.role === ERole.CLASSTEACHER;
 
   const [students, setStudents] = useState<StudentResponseDto[]>([]);
@@ -106,6 +188,8 @@ export default function Students() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
+  const [parentsStudent, setParentsStudent] = useState<StudentResponseDto | null>(null);
+  const [parentsModalOpen, setParentsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchStudents = useCallback(async () => {
@@ -211,12 +295,14 @@ export default function Students() {
                   <option value="FEMALE">Female</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setIsUploadOpen(true)}>Upload</Button>
-                <Link to="/students/create">
-                  <Button size="sm">Add Student</Button>
-                </Link>
-              </div>
+              {canManageStudents && (
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setIsUploadOpen(true)}>Upload</Button>
+                  <Link to="/students/create">
+                    <Button size="sm">Add Student</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -244,11 +330,24 @@ export default function Students() {
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.studentStatus}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.schoolClassName || "-"}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("studentEditItem", JSON.stringify(item)); navigate("/students/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
-                          <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.studentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
-                        </div>
-                      </TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              startIcon={<svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+                              onClick={() => { setParentsStudent(item); setParentsModalOpen(true); }}
+                              title="View Parents"
+                              ariaLabel="View Parents"
+                              className="!px-3 !py-3 !min-w-0 rounded-full !bg-indigo-100/20 !text-indigo-600 hover:!bg-indigo-200"
+                            />
+                            {canManageStudents && (
+                              <>
+                                <Button size="sm" variant="outline" startIcon={<PencilIcon className="size-4" />} onClick={() => { sessionStorage.setItem("studentEditItem", JSON.stringify(item)); navigate("/students/edit", { state: { item } }); }} title="Edit" ariaLabel="Edit" className="!px-3 !py-3 !min-w-0 rounded-full !bg-brand-100/20 !text-brand-600 hover:!bg-brand-200" />
+                                <Button size="sm" variant="outline" startIcon={<TrashBinIcon className="size-4" />} onClick={() => handleDelete(item.studentId)} title="Delete" ariaLabel="Delete" className="!px-3 !py-3 !min-w-0 rounded-full !bg-error-100/20 !text-error-600 hover:!bg-error-200" />
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -278,6 +377,12 @@ export default function Students() {
       </div>
 
       <StudentsUploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onSuccess={fetchStudents} />
+
+      <StudentParentsModal
+        isOpen={parentsModalOpen}
+        onClose={() => { setParentsModalOpen(false); setParentsStudent(null); }}
+        student={parentsStudent}
+      />
 
       <ConfirmDialog
         isOpen={deleteDialogOpen}

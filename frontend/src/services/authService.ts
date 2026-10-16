@@ -6,6 +6,8 @@ export enum ERole {
   CLASSTEACHER = "CLASSTEACHER",
   TEACHER = "TEACHER",
   PARENT = "PARENT",
+  SCHOOL_BOARD_MANAGER = "SCHOOL_BOARD_MANAGER",
+  ACCOUNTANT = "ACCOUNTANT"
 }
 
 export interface UsersResponseDto {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -7,14 +7,22 @@ import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 import { courseService, CourseRequestDto, ESchoolLevel } from "../../services/courseService";
 import { toast } from "../../utils/toast";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 export default function CoursesCreate() {
   const navigate = useNavigate();
+  const { canManageCourses } = useRoleAccess();
   const [courseCode, setCourseCode] = useState("");
   const [courseName, setCourseName] = useState("");
   const [courseHours, setCourseHours] = useState(0);
   const [courseLevel, setCourseLevel] = useState<ESchoolLevel>("PRIMARY");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canManageCourses) {
+      navigate("/courses");
+    }
+  }, [canManageCourses, navigate]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
