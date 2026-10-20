@@ -3,6 +3,7 @@ package com.ubrs.ubrs_backend.domain.dto.studentFeePayments;
 import com.ubrs.ubrs_backend.domain.dto.schoolFees.SchoolFeesResponseDto;
 import com.ubrs.ubrs_backend.util.EPaymentState;
 import com.ubrs.ubrs_backend.util.ESchoolLevel;
+import com.ubrs.ubrs_backend.util.ETerm;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +18,7 @@ public class StudentFeePaymentsResponseDto {
     private String studentCode;
     private String studentName;
     private SchoolFeesResponseDto schoolFees;
+    private ETerm term;
     private ESchoolLevel studentLevel;
     private Double totalAmountPaid;
     private Double remainAmount;

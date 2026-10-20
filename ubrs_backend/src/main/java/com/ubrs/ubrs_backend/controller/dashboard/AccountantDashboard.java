@@ -117,9 +117,9 @@ public class AccountantDashboard {
 
 
     @GetMapping("/totalStudentPaid")
-    public ResponseEntity<Double> totalStudentPaid() {
+    public ResponseEntity<Long> totalStudentPaid() {
         try {
-            double respond = studentFeePaymentService.totalStudentPaid(ETerm.TERM1);
+            long respond = studentFeePaymentService.totalStudentPaid(ETerm.TERM1);
             return ResponseEntity.ok(respond);
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -127,9 +127,9 @@ public class AccountantDashboard {
     }
 
     @GetMapping("/totalStudentPartial")
-    public ResponseEntity<Double> totalStudentPartial() {
+    public ResponseEntity<Long> totalStudentPartial() {
         try {
-            double respond = studentFeePaymentService.totalStudentPartial(ETerm.TERM1);
+            long respond = studentFeePaymentService.totalStudentPartial(ETerm.TERM1);
             return ResponseEntity.ok(respond);
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -138,9 +138,9 @@ public class AccountantDashboard {
 
 
     @GetMapping("/totalStudentUnpaid")
-    public ResponseEntity<Double> totalStudentUnpaid() {
+    public ResponseEntity<Long> totalStudentUnpaid() {
         try {
-            double respond = studentFeePaymentService.totalStudentUnpaid(ETerm.TERM1);
+            long respond = studentFeePaymentService.totalStudentUnpaid(ETerm.TERM1);
             return ResponseEntity.ok(respond);
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

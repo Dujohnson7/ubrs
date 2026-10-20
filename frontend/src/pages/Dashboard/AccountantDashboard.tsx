@@ -374,6 +374,7 @@ export default function AccountantDashboard() {
                   type="radialBar"
                   height={240}
                 />
+                <br />
                 <p className="text-xs text-gray-500 dark:text-gray-400 -mt-4 text-center">
                   {completionRate}% of expected school fees have been paid for Term 1.
                 </p>

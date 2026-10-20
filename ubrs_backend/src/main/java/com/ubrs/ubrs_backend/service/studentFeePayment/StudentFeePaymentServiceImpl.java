@@ -583,17 +583,17 @@ public class StudentFeePaymentServiceImpl implements IStudentFeePaymentService{
     }
 
     @Override
-    public double totalStudentPaid(ETerm term) {
+    public long totalStudentPaid(ETerm term) {
         return studentFeePaymentRepository.totalStudentPaid(term);
     }
 
     @Override
-    public double totalStudentPartial(ETerm term) {
+    public long totalStudentPartial(ETerm term) {
         return studentFeePaymentRepository.totalStudentPartial(term);
     }
 
     @Override
-    public double totalStudentUnpaid(ETerm term) {
+    public long totalStudentUnpaid(ETerm term) {
         return studentFeePaymentRepository.totalStudentUnpaid(term);
     }
 

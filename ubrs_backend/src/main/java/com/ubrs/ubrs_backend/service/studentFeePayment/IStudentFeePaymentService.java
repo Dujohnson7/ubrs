@@ -25,9 +25,9 @@ public interface IStudentFeePaymentService {
     double totalAmountCollectedByActive();
     double totalAmountPendingReceivableByActive();
     double totalAmountExpectedByActive();
-    double totalStudentPaid(ETerm term);
-    double totalStudentPartial(ETerm term);
-    double totalStudentUnpaid(ETerm term);
+    long totalStudentPaid(ETerm term);
+    long totalStudentPartial(ETerm term);
+    long totalStudentUnpaid(ETerm term);
     double schoolFeeCompletionRate(ETerm term);
     List<ParentStudentPaymentHistoryProjection> getParentStudentPaymentHistory(UUID parentId, UUID academicYearId, ETerm term);
 

@@ -848,7 +848,7 @@ export default function StudentFeePayments() {
                               <span>{item.schoolFees?.fiscalYear || "—"}</span>
                               <span className="text-gray-400">·</span>
                               <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
-                                {(item as any).term || "TERM1"}
+                                {item.term }
                               </span>
                             </div>
                           </TableCell>

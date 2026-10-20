@@ -40,7 +40,7 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     SELECT COALESCE(SUM(sf.totalAmountPaid), 0)
     FROM StudentFeePayments sf
     WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
     """)
     double totalAmountCollectedByActive();
 
@@ -48,7 +48,7 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     SELECT COALESCE(SUM(sf.remainAmount), 0)
     FROM StudentFeePayments sf
     WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
     """)
     double totalAmountPendingReceivableByActive();
 
@@ -56,14 +56,14 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     SELECT COALESCE(SUM(sf.remainAmount + sf.totalAmountPaid), 0)
     FROM StudentFeePayments sf
     WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
     """)
     double totalAmountExpectedByActive();
 
     @Query("""
     SELECT COUNT(sf) FROM StudentFeePayments sf WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
-      AND sf.paymentStatus = 'PAID'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
+      AND sf.paymentStatus =  EPaymentState.PAID
       AND sf.term = :term
     """)
     long totalStudentPaid(ETerm term);
@@ -72,8 +72,8 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     SELECT COUNT(sf)
     FROM StudentFeePayments sf
     WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
-      AND sf.paymentStatus = 'PARTIAL'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
+      AND sf.paymentStatus =  EPaymentState.PARTIAL
       AND sf.term = :term
     """)
     long totalStudentPartial(ETerm term);
@@ -82,8 +82,8 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     SELECT COUNT(sf)
     FROM StudentFeePayments sf
     WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
-      AND sf.paymentStatus = 'UNPAID'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
+      AND sf.paymentStatus = EPaymentState.UNPAID
       AND sf.term = :term
     """)
     long totalStudentUnpaid(ETerm term);
@@ -92,7 +92,7 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     SELECT COUNT(sf)
     FROM StudentFeePayments sf
     WHERE sf.isDeleted = false
-      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.schoolFees.academicYear.academicYearStatus = EAcademicState.ACTIVE
       AND sf.term = :term
     """)
     long countValidatedStudentByActive(ETerm term);
