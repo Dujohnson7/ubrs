@@ -10,43 +10,15 @@ type TrendData = {
   rejected: number[];
 };
 
-// Tiny styled <select> wrapper
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap font-medium">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 outline-none cursor-pointer focus:ring-2 focus:ring-brand-500/30 transition-all"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
+
 
 export default function StatisticsChart() {
   const [data, setData] = useState<MarksSubmissionTrends | null>(null);
-  const [academicYear, setAcademicYear] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // The active academic year is the first (and only) year returned by the backend
+  const activeYear = data?.academicYears[0] ?? "";
 
   useEffect(() => {
     const load = async () => {
@@ -55,9 +27,6 @@ export default function StatisticsChart() {
       try {
         const result = await headerTeacherDashboardService.getMarksSubmissionTrends();
         setData(result);
-        if (result.academicYears.length > 0) {
-          setAcademicYear(result.academicYears[0]);
-        }
       } catch (e) {
         console.error(e);
         setError(e instanceof Error ? e.message : "Failed to load marks trends");
@@ -70,7 +39,7 @@ export default function StatisticsChart() {
   }, []);
 
   const trendData: TrendData = useMemo(() => {
-    if (!data || !academicYear) {
+    if (!data || !activeYear) {
       return {
         approved: [0, 0, 0],
         submitted: [0, 0, 0],
@@ -78,13 +47,13 @@ export default function StatisticsChart() {
         rejected: [0, 0, 0],
       };
     }
-    return data.trendsByYear[academicYear] || {
+    return data.trendsByYear[activeYear] || {
       approved: [0, 0, 0],
       submitted: [0, 0, 0],
       pending: [0, 0, 0],
       rejected: [0, 0, 0],
     };
-  }, [data, academicYear]);
+  }, [data, activeYear]);
 
   const series = [
     { name: "Approved",  data: trendData.approved },
@@ -162,19 +131,23 @@ export default function StatisticsChart() {
             Marks Submission Trends
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Subject approval status per term — {academicYear}
+            Subject approval status per term
+            {activeYear ? ` — ${activeYear}` : ""}
           </p>
         </div>
 
-        {/* ── Filter: Academic Year only ── */}
-        <div className="flex items-center gap-3 flex-wrap sm:justify-end">
-          <FilterSelect
-            label="Academic Year"
-            value={academicYear}
-            options={data?.academicYears || []}
-            onChange={setAcademicYear}
-          />
-        </div>
+        {/* Active academic year badge */}
+        {activeYear && (
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 border border-brand-200 dark:border-brand-700/50">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-500" />
+              </span>
+              Active Year: {activeYear}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Chart ── */}

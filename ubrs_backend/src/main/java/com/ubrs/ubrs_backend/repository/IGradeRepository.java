@@ -2,7 +2,6 @@ package com.ubrs.ubrs_backend.repository;
 
 import com.ubrs.ubrs_backend.domain.entity.AcademicYear;
 import com.ubrs.ubrs_backend.domain.entity.Grade;
-import com.ubrs.ubrs_backend.domain.entity.SchoolClass;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeDetailProjection;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeStatusProjection;
 import com.ubrs.ubrs_backend.util.EGradeState;
@@ -291,10 +290,11 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
         COUNT(DISTINCT g.course.id) AS count
     FROM Grade g
     WHERE g.isDeleted = false
+      AND g.academicYear.id = :academicYearId
     GROUP BY g.academicYear.fiscalYear, g.term, g.submitStatus
     ORDER BY g.academicYear.fiscalYear DESC, g.term
     """)
-    List<Object[]> findMarksSubmissionTrends();
+    List<Object[]> findMarksSubmissionTrends(@Param("academicYearId") UUID academicYearId);
 
     @Query("""
     SELECT

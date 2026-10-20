@@ -22,9 +22,14 @@ import { studentService, StudentResponseDto } from "../../services/studentServic
 import { accountantDashboardService } from "../../services/accountantDashboardService";
 import { toast } from "../../utils/toast";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
+import { useAuth } from "../../hooks/useAuth";
+import { resolveSignatory, ResolvedSignatory } from "../../utils/signatureUtils";
+import PageSignatureBlock from "../../components/common/PageSignatureBlock";
 
 export default function StudentFeePayments() {
   const { canManageFinance } = useRoleAccess();
+  const { user } = useAuth();
+  const [signatory, setSignatory] = useState<ResolvedSignatory | null>(null);
   const [payments, setPayments] = useState<StudentFeePaymentsResponseDto[]>([]);
   const [schoolFeesList, setSchoolFeesList] = useState<SchoolFeesResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +92,7 @@ export default function StudentFeePayments() {
   const [importLoading, setImportLoading] = useState(false);
 
   const loadData = async () => {
+    resolveSignatory(user, "Head Teacher").then(setSignatory);
     try {
       setLoading(true);
       const [feePaymentsData, schoolFeesData, kpis] = await Promise.all([
@@ -377,7 +383,7 @@ export default function StudentFeePayments() {
     generateReportPdf({
       title: "STUDENT FEE PAYMENTS REPORT",
       reportPeriod: periodParts.join(" · "),
-      preparedBy: "Head Teacher",
+      signatory: signatory || undefined,
       headers,
       body,
     });
@@ -983,6 +989,14 @@ export default function StudentFeePayments() {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {signatory && (
+              <PageSignatureBlock
+                name={signatory.name}
+                role={signatory.role}
+                signatureUrl={signatory.signatureUrl}
+              />
             )}
           </div>
         </ComponentCard>

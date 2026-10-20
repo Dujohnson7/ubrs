@@ -10,6 +10,8 @@ import { DownloadIcon } from "../../icons";
 import { generateReportPdf } from "../../utils/pdfExport";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { resolveSignatory, ResolvedSignatory } from "../../utils/signatureUtils";
+import PageSignatureBlock from "../../components/common/PageSignatureBlock";
 import {
   financialReportService,
   ExpenseReportProjection,
@@ -102,6 +104,11 @@ function exportCsv(filename: string, headers: string[], rows: (string | number)[
 export default function FinancialReport() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [signatory, setSignatory] = useState<ResolvedSignatory | null>(null);
+
+  useEffect(() => {
+    resolveSignatory(user, "Finance Officer").then(setSignatory);
+  }, [user]);
 
   // Role Protection: Head Teacher, School Board Manager, Accountant
   useEffect(() => {
@@ -384,7 +391,7 @@ export default function FinancialReport() {
     generateReportPdf({
       title,
       reportPeriod: periodStr,
-      preparedBy: user ? `${user.firstName || ""} ${user.lastName || ""} (${user.role || "Finance Department"})` : "Finance Officer",
+      signatory: signatory || undefined,
       headers,
       body,
     });
@@ -1366,6 +1373,14 @@ export default function FinancialReport() {
                   </div>
                 )}
               </ComponentCard>
+            )}
+
+            {signatory && (
+              <PageSignatureBlock
+                name={signatory.name}
+                role={signatory.role}
+                signatureUrl={signatory.signatureUrl}
+              />
             )}
           </>
         )}

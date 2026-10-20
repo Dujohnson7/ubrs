@@ -99,7 +99,11 @@ public class HeaderTeacherDashboardServiceImpl implements IHeaderTeacherDashboar
     @Override
     public MarksSubmissionTrendsDto getMarksSubmissionTrends() {
         try {
-            List<Object[]> results = gradeRepository.findMarksSubmissionTrends();
+            AcademicYearResponseDto activeAcademicYear = academicYearService.getActiveAcademicYear();
+            if (activeAcademicYear == null) {
+                return new MarksSubmissionTrendsDto(new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+            }
+            List<Object[]> results = gradeRepository.findMarksSubmissionTrends(activeAcademicYear.getAcademicYearId());
 
             Map<String, Map<String, Map<String, Integer>>> trendsData = new TreeMap<>(Collections.reverseOrder());
             Set<String> academicYears = new TreeSet<>(Collections.reverseOrder());

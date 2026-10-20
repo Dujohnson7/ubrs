@@ -1,34 +1,93 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { cleanName } from "./signatureUtils";
 
-interface PdfOptions {
+export interface PdfSignatory {
+  name: string;
+  role?: string;
+  signatureUrl?: string;
+}
+
+export interface PdfOptions {
   title: string;
   reportPeriod: string;
-  preparedBy: string;
+  preparedBy?: string;
+  signatory?: PdfSignatory;
   headers: string[][];
   body: (string | number)[][];
 }
 
+const loadImageAsBase64 = (url?: string): Promise<string | undefined> => {
+  if (!url) return Promise.resolve(undefined);
+  if (url.startsWith("data:")) return Promise.resolve(url);
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+          return;
+        }
+      } catch {
+        // Fallback for tainted canvas
+      }
+      resolve(undefined);
+    };
+    img.onerror = () => resolve(undefined);
+    img.src = url;
+  });
+};
+
 export const generateReportPdf = (options: PdfOptions) => {
-  const { title, reportPeriod, preparedBy, headers, body } = options;
+  const { title, reportPeriod, preparedBy, signatory, headers, body } = options;
   const doc = new jsPDF();
 
   const logoUrl = "/assets/logo.png";
-  
+
+  // Resolve signatory name and role without ()
+  let signatoryName = "";
+  let signatoryRole = "";
+  let signatureUrl = "";
+
+  if (signatory) {
+    signatoryName = cleanName(signatory.name) || "Authorized Official";
+    signatoryRole = signatory.role || "";
+    signatureUrl = signatory.signatureUrl || "";
+  } else if (preparedBy) {
+    const parenMatch = preparedBy.match(/^(.*?)\s*\((.*?)\)$/);
+    if (parenMatch) {
+      signatoryName = cleanName(parenMatch[1]);
+      signatoryRole = parenMatch[2];
+    } else {
+      signatoryName = cleanName(preparedBy);
+    }
+  }
+
+  if (!signatoryName) {
+    signatoryName = "Authorized Official";
+  }
+
   // Format dates
   const today = new Date();
-  const dateStr = today.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
+  const dateStr = today.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
   });
 
-  const generateDoc = (imgData?: string) => {
+  const generateDoc = (logoData?: string, sigData?: string) => {
     // 1. Header Area
-    if (imgData) {
-      doc.addImage(imgData, "PNG", 14, 10, 25, 25);
+    if (logoData) {
+      doc.addImage(logoData, "PNG", 14, 10, 25, 25);
     }
-    
+
     // Header Texts (Left)
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
@@ -60,10 +119,12 @@ export const generateReportPdf = (options: PdfOptions) => {
     doc.setFont("helvetica", "normal");
     doc.text(reportPeriod, 45, 82);
 
+    // Prepared By (clean name without parentheses)
     doc.setFont("helvetica", "bold");
     doc.text("Prepared By :", 14, 89);
     doc.setFont("helvetica", "normal");
-    doc.text(preparedBy, 45, 89);
+    doc.text(signatoryName, 45, 89);
+ 
 
     doc.setFont("helvetica", "bold");
     doc.text("Date Generated:", 14, 96);
@@ -107,31 +168,53 @@ export const generateReportPdf = (options: PdfOptions) => {
     });
 
     // 3. Footer area
-    // Use the final Y position from autotable
-    const finalY = (doc as any).lastAutoTable.finalY || 125;
-    
+    const finalY = (doc as any).lastAutoTable?.finalY || 125;
+
     // Check if we need a new page for footer
-    let footerY = finalY + 30;
-    if (footerY > 260) {
+    let footerY = finalY + 20;
+    if (footerY > 230) {
       doc.addPage();
-      footerY = 30;
+      footerY = 25;
     }
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
+
+    // Line 1: Name without ()
     doc.setFont("helvetica", "bold");
     doc.text("Prepared By:", 14, footerY);
     doc.setFont("helvetica", "normal");
-    doc.text(preparedBy, 45, footerY);
+    doc.text(signatoryName, 45, footerY);
 
-    doc.setFont("helvetica", "bold");
-    doc.text("Signature:", 14, footerY + 10);
-    doc.line(45, footerY + 10, 100, footerY + 10);
+    let curY = footerY;
 
+    // Line 2: Role at new line
+    if (signatoryRole) {
+      curY += 8;
+      doc.setFont("helvetica", "bold");
+      doc.text("", 14, curY);
+      doc.setFont("helvetica", "normal");
+      doc.text(signatoryRole, 45, curY);
+    }
+
+    // Line 3: Signature at new line
+    curY += 8;
     doc.setFont("helvetica", "bold");
-    doc.text("Date:", 14, footerY + 20);
+    doc.text("Signature:", 14, curY + 6);
+
+    if (sigData) {
+      doc.addImage(sigData, "PNG", 45, curY - 2, 45, 16);
+      curY += 18;
+    } else {
+      doc.line(45, curY + 6, 110, curY + 6);
+      curY += 12;
+    }
+
+    // Line 4: Date
+    doc.setFont("helvetica", "bold");
+    doc.text("Date:", 14, curY + 4);
     doc.setFont("helvetica", "normal");
-    doc.text(dateStr, 45, footerY + 20);
+    doc.text(dateStr, 45, curY + 4);
 
     // Page numbers and system branding
     const pageCount = (doc as any).internal.getNumberOfPages();
@@ -143,26 +226,20 @@ export const generateReportPdf = (options: PdfOptions) => {
       doc.text("Generated By Ubrs System", 105, 290, { align: "center" });
     }
 
-    doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}_${dateStr.replace(/\s+/g, '_')}.pdf`);
+    doc.save(
+      `${title.toLowerCase().replace(/\s+/g, "_")}_${dateStr.replace(/\s+/g, "_")}.pdf`
+    );
   };
 
-  // Convert image to base64 to ensure it loads synchronously in the PDF
-  const img = new Image();
-  img.src = logoUrl;
-  img.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.drawImage(img, 0, 0);
-      const dataUrl = canvas.toDataURL("image/png");
-      generateDoc(dataUrl);
-    } else {
-      generateDoc(); // fallback if canvas fails
-    }
-  };
-  img.onerror = () => {
-    generateDoc(); // generate without image if it fails to load
-  };
+  // Preload logo and signature images before generating PDF
+  Promise.all([
+    loadImageAsBase64(logoUrl),
+    loadImageAsBase64(signatureUrl),
+  ])
+    .then(([logoData, sigData]) => {
+      generateDoc(logoData, sigData);
+    })
+    .catch(() => {
+      generateDoc();
+    });
 };

@@ -13,9 +13,10 @@ import {
   PromotionRetentionProjection,
 } from "../../services/schoolReportService";
 import { academicYearService, AcademicYearResponseDto } from "../../services/academicYearService";
-import { schoolClassService, SchoolClassResponseDto } from "../../services/schoolClassService";
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
+import { resolveSignatory, ResolvedSignatory } from "../../utils/signatureUtils";
+import PageSignatureBlock from "../../components/common/PageSignatureBlock";
 
 type TabType = "class" | "subject" | "promotion";
 
@@ -75,6 +76,11 @@ function GradeBadge({ grade }: { grade: string }) {
 export default function SchoolReports() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [signatory, setSignatory] = useState<ResolvedSignatory | null>(null);
+
+  useEffect(() => {
+    resolveSignatory(user, "Head Teacher").then(setSignatory);
+  }, [user]);
 
   // HEADERTEACHER, SCHOOL_BOARD_MANAGER, and ACCOUNTANT may access School Reports
   useEffect(() => {
@@ -232,7 +238,7 @@ export default function SchoolReports() {
     generateReportPdf({
       title,
       reportPeriod: periodStr,
-      preparedBy: "Head Teacher",
+      signatory: signatory || undefined,
       headers,
       body,
     });
@@ -465,6 +471,14 @@ export default function SchoolReports() {
                   </div>
                 </div>
               </ComponentCard>
+            )}
+
+            {signatory && (
+              <PageSignatureBlock
+                name={signatory.name}
+                role={signatory.role}
+                signatureUrl={signatory.signatureUrl}
+              />
             )}
           </>
         )}

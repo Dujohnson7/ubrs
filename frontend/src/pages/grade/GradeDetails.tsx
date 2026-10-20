@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
@@ -7,11 +7,83 @@ import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { ChevronLeftIcon } from "../../icons";
 import { GradeResponseDto } from "../../services/gradeService";
+import { useAuth } from "../../hooks/useAuth";
+import { courseAssignmentService } from "../../services/courseAssignmentService";
+import { userService } from "../../services/userService";
+import {
+  cleanName,
+  getSignatureUrl,
+  resolveHeadteacherSignatory,
+  resolveSignatory,
+  ResolvedSignatory,
+} from "../../utils/signatureUtils";
+import PageSignatureBlock from "../../components/common/PageSignatureBlock";
 
 export default function GradeDetails() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const grade = (location.state as { grade?: GradeResponseDto } | null)?.grade;
+
+  const [courseTeacher, setCourseTeacher] = useState<ResolvedSignatory>({
+    name: "Course Teacher",
+    role: "Course Teacher",
+    signatureUrl: "",
+  });
+  const [headteacher, setHeadteacher] = useState<ResolvedSignatory>({
+    name: "Head Teacher",
+    role: "Head Teacher",
+    signatureUrl: "",
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSignatures() {
+      try {
+        const head = await resolveHeadteacherSignatory();
+        if (isMounted) setHeadteacher(head);
+      } catch (e) {
+        console.error("Failed to load headteacher signatory", e);
+      }
+
+      try {
+        if (grade?.schoolClassId && grade?.courseId) {
+          const assignments = await courseAssignmentService.getAllCourseAssignments();
+          const match = assignments.find(
+            (a) =>
+              a.schoolClassId === grade.schoolClassId &&
+              a.courseId === grade.courseId
+          );
+          if (match) {
+            let sigUrl = "";
+            try {
+              const teacherUser = await userService.getUserById(match.teacherId);
+              sigUrl = getSignatureUrl(teacherUser.signature);
+            } catch {}
+            if (isMounted) {
+              setCourseTeacher({
+                name: cleanName(match.teacherName) || "Course Teacher",
+                role: "Course Teacher",
+                signatureUrl: sigUrl,
+              });
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load course assignment teacher", e);
+      }
+
+      if (user && (user.role === "TEACHER" || (user.role as string) === "CLASSTEACHER")) {
+        const userSig = await resolveSignatory(user, "Course Teacher");
+        if (isMounted) setCourseTeacher(userSig);
+      }
+    }
+    loadSignatures();
+    return () => {
+      isMounted = false;
+    };
+  }, [grade, user]);
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -111,12 +183,30 @@ export default function GradeDetails() {
         </div>
 
         <!-- SIGNATURES -->
-        <div style="padding:40px 30px; display:flex; justify-content:space-between; font-size:13px;">
-          <div style="text-align:center; width:250px;">
-            <div style="border-top:1px solid #000; padding-top:5px;"><strong>Course Teacher Signature</strong></div>
+        <div style="padding:30px 40px; display:flex; justify-content:space-between; font-size:12px; margin-top:20px;">
+          <div style="text-align:center; min-width:200px; max-width:260px;">
+            <div style="font-size:13px; font-weight:bold; color:#000;">${courseTeacher.name}</div>
+            <div style="font-size:11px; color:#555; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px;">${courseTeacher.role}</div>
+            <div style="min-height:50px; display:flex; align-items:center; justify-content:center; margin:6px 0;">
+              ${
+                courseTeacher.signatureUrl
+                  ? `<img src="${courseTeacher.signatureUrl}" alt="Course Teacher Signature" style="max-height:48px; max-width:180px; object-fit:contain;" />`
+                  : `<div style="height:35px;"></div>`
+              }
+            </div>
+            <div style="border-top:1px solid #000; padding-top:4px;"><strong>Course Teacher Signature</strong></div>
           </div>
-          <div style="text-align:center; width:250px;">
-            <div style="border-top:1px solid #000; padding-top:5px;"><strong>Headteacher Signature</strong></div>
+          <div style="text-align:center; min-width:200px; max-width:260px;">
+            <div style="font-size:13px; font-weight:bold; color:#000;">${headteacher.name}</div>
+            <div style="font-size:11px; color:#555; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px;">${headteacher.role}</div>
+            <div style="min-height:50px; display:flex; align-items:center; justify-content:center; margin:6px 0;">
+              ${
+                headteacher.signatureUrl
+                  ? `<img src="${headteacher.signatureUrl}" alt="Headteacher Signature" style="max-height:48px; max-width:180px; object-fit:contain;" />`
+                  : `<div style="height:35px;"></div>`
+              }
+            </div>
+            <div style="border-top:1px solid #000; padding-top:4px;"><strong>Headteacher Signature</strong></div>
           </div>
         </div>
       </div>
@@ -250,6 +340,23 @@ export default function GradeDetails() {
               <Button size="sm" variant="outline" onClick={() => setPage(Math.min(pageCount, currentPage + 1))} disabled={currentPage === pageCount}>Next</Button>
             </div>
           </div>
+
+          <PageSignatureBlock
+            signatories={[
+              {
+                title: "Course Teacher",
+                name: courseTeacher.name,
+                role: courseTeacher.role,
+                signatureUrl: courseTeacher.signatureUrl,
+              },
+              {
+                title: "Head Teacher",
+                name: headteacher.name,
+                role: headteacher.role,
+                signatureUrl: headteacher.signatureUrl,
+              },
+            ]}
+          />
         </ComponentCard>
       </div>
     </>

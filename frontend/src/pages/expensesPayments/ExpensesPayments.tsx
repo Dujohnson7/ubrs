@@ -11,9 +11,12 @@ import { expensesPaymentsService, ExpensesPaymentsResponseDto } from "../../serv
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { generateReportPdf } from "../../utils/pdfExport";
 import { toast } from "../../utils/toast";
+import { resolveSignatory, ResolvedSignatory } from "../../utils/signatureUtils";
+import PageSignatureBlock from "../../components/common/PageSignatureBlock";
 
 export default function ExpensesPayments() {
   const { canManageFinance, user } = useRoleAccess();
+  const [signatory, setSignatory] = useState<ResolvedSignatory | null>(null);
   const [expensesPayments, setExpensesPayments] = useState<ExpensesPaymentsResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -33,6 +36,7 @@ export default function ExpensesPayments() {
   }, [expensesPayments]);
 
   useEffect(() => {
+    resolveSignatory(user, "Finance Officer").then(setSignatory);
     const loadExpensesPayments = async () => {
       try {
         setLoading(true);
@@ -46,7 +50,7 @@ export default function ExpensesPayments() {
     };
 
     loadExpensesPayments();
-  }, []);
+  }, [user]);
 
   const handleDelete = async (id: string) => {
     setItemToDelete(id);
@@ -160,9 +164,7 @@ export default function ExpensesPayments() {
     generateReportPdf({
       title: "EXPENSE PAYMENTS REPORT",
       reportPeriod: periodParts.join(" · "),
-      preparedBy: user
-        ? `${user.names || "Staff"} (${user.role || "Finance Department"})`
-        : "Finance Officer",
+      signatory: signatory || undefined,
       headers,
       body,
     });
@@ -172,9 +174,7 @@ export default function ExpensesPayments() {
     generateReportPdf({
       title: "EXPENSE PAYMENT VOUCHER",
       reportPeriod: formatDate(item.expenseDate),
-      preparedBy: user
-        ? `${user.names || "Staff"} (${user.role || "Finance Department"})`
-        : "Finance Officer",
+      signatory: signatory || undefined,
       headers: [["Field", "Details"]],
       body: [
         ["Payment Reference", item.expensesPaymentsId],
@@ -366,6 +366,14 @@ export default function ExpensesPayments() {
                 </div>
               </div>
             </div>
+
+            {signatory && (
+              <PageSignatureBlock
+                name={signatory.name}
+                role={signatory.role}
+                signatureUrl={signatory.signatureUrl}
+              />
+            )}
           </div>
         </ComponentCard>
       </div>
