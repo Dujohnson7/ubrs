@@ -415,6 +415,11 @@ public class GradeServiceImpl implements IGradeService {
     }
 
     @Override
+    public List<ClassGradeStatusProjection> getClassGradeStatusByClassTeacher(UUID teacherId) {
+        return gradeRepository.findClassGradeStatusByClassTeacher(teacherId);
+    }
+
+    @Override
     public List<ClassGradeDetailProjection> getClassGradeDetails(UUID classId, UUID academicYearId, ETerm term) {
         return gradeRepository.findClassGradeDetails(classId, academicYearId, term);
     }

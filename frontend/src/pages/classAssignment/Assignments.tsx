@@ -8,8 +8,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import DatePicker from "../../components/form/date-picker";
-import { PencilIcon, TrashBinIcon, CloseIcon } from "../../icons";
-import { toast } from "../../utils/toast";
+import { PencilIcon, TrashBinIcon, CloseIcon } from "../../icons"; 
 import { useAuth } from "../../hooks/useAuth";
 import { ERole } from "../../services/authService";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
@@ -157,10 +156,20 @@ export default function Assignments() {
               <div>
                 <label className="block text-left text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Teacher</label>
                 <select className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-left text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" value={teacherFilter} onChange={(e) => { setTeacherFilter(e.target.value); setPage(1); }}>
-                  <option value="ALL">All Teachers</option>
-                  {uniqueTeachers.map((teacher) => (
-                    <option key={teacher} value={teacher}>{teacher}</option>
-                  ))}
+                  {canManageAssignments ? (
+                    <>
+                      <option value="ALL">All Teachers</option>
+                      {uniqueTeachers.map((teacher) => (
+                        <option key={teacher} value={teacher}>{teacher}</option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {uniqueTeachers.map((teacher) => (
+                        <option key={teacher} value={teacher} selected disabled>{teacher}</option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
               <div>
@@ -217,7 +226,7 @@ export default function Assignments() {
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">#</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Teacher</TableCell>
+                    {canManageAssignments && <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Teacher</TableCell>}
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Course</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Assignment Date</TableCell>
@@ -232,7 +241,7 @@ export default function Assignments() {
                   {paginated.map((item, index) => (
                     <TableRow key={item.courseAssignmentId}>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{(currentPage - 1) * pageSize + index + 1}</TableCell>
-                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.teacherName}</TableCell>
+                      {canManageAssignments && <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.teacherName}</TableCell>}
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.schoolClassName}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.courseName}</TableCell>
                       <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">{item.assignmentDate}</TableCell>

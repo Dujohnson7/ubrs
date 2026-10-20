@@ -236,6 +236,23 @@ async function getClassGradeStatus(): Promise<ClassGradeStatusProjection[]> {
   return parseJsonResponse<ClassGradeStatusProjection[]>(response, "Unable to parse class grade status.");
 }
 
+async function getClassGradeStatusByClassTeacher(classTeacherId: string): Promise<ClassGradeStatusProjection[]> {
+  const response = await fetch(getApiUrl(`/api/grade/classGrade/classTeacher/${classTeacherId}`));
+  if (!response.ok) {
+    if (response.status === 404) {
+      return [];
+    }
+    try {
+      const data = await parseJsonResponse<ClassGradeStatusProjection[]>(response, "");
+      if (Array.isArray(data)) return data;
+    } catch {
+      // ignore
+    }
+    throw new Error("Failed to load class grade status for class teacher");
+  }
+  return parseJsonResponse<ClassGradeStatusProjection[]>(response, "Unable to parse class grade status.");
+}
+
 async function getClassGradeDetails(classId: string, academicYearId: string, term: string): Promise<ClassGradeDetailProjection[]> {
   const params = new URLSearchParams({
     classId,
@@ -281,6 +298,7 @@ export const gradeService = {
   updateGrade,
   deleteGrade,
   getClassGradeStatus,
+  getClassGradeStatusByClassTeacher,
   getClassGradeDetails,
   getAllByAcademicYearAndTermAndSchoolClassAndCourse,
 };

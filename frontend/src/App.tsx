@@ -36,6 +36,7 @@ import Calendar from "./pages/Calendar";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import SchoolBoardDashboard from "./pages/Dashboard/SchoolBoardDashboard";
 import StudentReports from "./pages/report/StudentReports";
 import ClassStudentReports from "./pages/report/ClassStudentReports";
 import MarksApproval from "./pages/report/MarksApproval";
@@ -59,6 +60,9 @@ import StudentFeePayments from "./pages/studentFeePayments/StudentFeePayments";
 import StudentFeePaymentsCreate from "./pages/studentFeePayments/StudentFeePaymentsCreate";
 import StudentFeePaymentsEdit from "./pages/studentFeePayments/StudentFeePaymentsEdit";
 import StudentFeePaymentsInstallments from "./pages/studentFeePayments/StudentFeePaymentsInstallments";
+import Announcements from "./pages/announcement/Announcement";
+import AnnouncementsCreate from "./pages/announcement/AnnouncementsCreate";
+import AnnouncementsEdit from "./pages/announcement/AnnouncementsEdit";
 import { AuthProvider } from "./context/AuthContext";
 import ToastContainer from "./components/common/ToastContainer";
 
@@ -73,6 +77,7 @@ export default function App() {
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
             <Route index path="/" element={<Home />} />
+            <Route path="/school-board-dashboard" element={<SchoolBoardDashboard />} />
 
             {/* UBRS Page */}
             <Route path="/profile" element={<UserProfiles />} />
@@ -130,6 +135,9 @@ export default function App() {
             <Route path="/student-fee-payments/edit" element={<StudentFeePaymentsEdit />} />
             <Route path="/student-fee-payments/installments" element={<StudentFeePaymentsInstallments />} />
             <Route path="/student-fee-payments/installments/:id" element={<StudentFeePaymentsInstallments />} />
+            <Route path="/announcements" element={<Announcements />} />
+            <Route path="/announcements/create" element={<AnnouncementsCreate />} />
+            <Route path="/announcements/edit" element={<AnnouncementsEdit />} />
             <Route path="/calendar" element={<Calendar />} /> 
           </Route>
 

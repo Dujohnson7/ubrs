@@ -36,26 +36,66 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
 
     StudentFeePayments findByStudent_IdAndSchoolFees_IdAndTermAndIsDeleted(UUID studentId, UUID schoolFeesId, ETerm term, Boolean isDeleted);
 
-    @Query("SELECT COALESCE( SUM(sf.totalAmountPaid), 0) FROM StudentFeePayments sf WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'")
+    @Query("""
+    SELECT COALESCE(SUM(sf.totalAmountPaid), 0)
+    FROM StudentFeePayments sf
+    WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+    """)
     double totalAmountCollectedByActive();
 
-    @Query("SELECT COALESCE( SUM(sf.remainAmount), 0) FROM StudentFeePayments sf WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'")
+    @Query("""
+    SELECT COALESCE(SUM(sf.remainAmount), 0)
+    FROM StudentFeePayments sf
+    WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+    """)
     double totalAmountPendingReceivableByActive();
 
-    @Query("SELECT COALESCE( SUM(sf.remainAmount + sf.totalAmountPaid), 0) FROM StudentFeePayments sf WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'")
+    @Query("""
+    SELECT COALESCE(SUM(sf.remainAmount + sf.totalAmountPaid), 0)
+    FROM StudentFeePayments sf
+    WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+    """)
     double totalAmountExpectedByActive();
 
-    @Query("SELECT COALESCE( COUNT(sf) ,0) FROM StudentFeePayments sf  WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE' AND sf.paymentStatus = 'PAID' AND sf.term = :term")
-    double totalStudentPaid(ETerm term);
+    @Query("""
+    SELECT COUNT(sf) FROM StudentFeePayments sf WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.paymentStatus = 'PAID'
+      AND sf.term = :term
+    """)
+    long totalStudentPaid(ETerm term);
 
-    @Query("SELECT COALESCE( COUNT(sf) ,0) FROM StudentFeePayments sf  WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE' AND sf.paymentStatus = 'PARTIAL' AND sf.term = :term")
-    double totalStudentPartial(ETerm term);
+    @Query("""
+    SELECT COUNT(sf)
+    FROM StudentFeePayments sf
+    WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.paymentStatus = 'PARTIAL'
+      AND sf.term = :term
+    """)
+    long totalStudentPartial(ETerm term);
 
-    @Query("SELECT COALESCE( COUNT(sf) ,0) FROM StudentFeePayments sf  WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE' AND sf.paymentStatus = 'UNPAID' AND sf.term = :term")
-    double totalStudentUnpaid(ETerm term);
+    @Query("""
+    SELECT COUNT(sf)
+    FROM StudentFeePayments sf
+    WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.paymentStatus = 'UNPAID'
+      AND sf.term = :term
+    """)
+    long totalStudentUnpaid(ETerm term);
 
-    @Query("SELECT COALESCE( COUNT(sf) ,0) FROM StudentFeePayments sf  WHERE sf.isDeleted = false AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE' AND sf.term = :term")
-    int countValidatedStudentByActive(ETerm term);
+    @Query("""
+    SELECT COUNT(sf)
+    FROM StudentFeePayments sf
+    WHERE sf.isDeleted = false
+      AND sf.schoolFees.academicYear.academicYearStatus = 'ACTIVE'
+      AND sf.term = :term
+    """)
+    long countValidatedStudentByActive(ETerm term);
 
     @Query("""
     SELECT

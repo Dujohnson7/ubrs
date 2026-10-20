@@ -28,6 +28,7 @@ public interface IGradeService {
 
 
     List<ClassGradeStatusProjection> getClassGradeStatus();
+    List<ClassGradeStatusProjection> getClassGradeStatusByClassTeacher(UUID teacherId);
     List<ClassGradeDetailProjection> getClassGradeDetails(UUID classId, UUID academicYearId, ETerm term);
     List<GradeResponseDto> getAllByAcademicYearAndTermAndSchoolClassAndCourse(UUID academicYearId, ETerm term, UUID schoolClassId, UUID courseId);
 

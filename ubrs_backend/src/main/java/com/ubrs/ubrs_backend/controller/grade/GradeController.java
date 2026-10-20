@@ -157,7 +157,19 @@ public class GradeController {
     }
 
 
-
+    @GetMapping("/classGrade/classTeacher/{classTeacherId}")
+    public ResponseEntity<List<ClassGradeStatusProjection>> getClassGradeStatusByClassTeacher(@PathVariable String classTeacherId){
+        try {
+            List<ClassGradeStatusProjection> gradesList = gradeService.getClassGradeStatusByClassTeacher(UUID.fromString(classTeacherId));
+            if (Objects.nonNull(gradesList)) {
+                return ResponseEntity.ok(gradesList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
 
 
     @GetMapping("/classGrade")

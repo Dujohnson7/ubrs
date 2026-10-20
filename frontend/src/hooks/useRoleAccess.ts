@@ -12,22 +12,19 @@ export const useRoleAccess = () => {
   const isTeacher = role === ERole.TEACHER;
   const isParent = role === ERole.PARENT;
 
-  // On Finance pages: ONLY ACCOUNTANT can display actions and modify
-  // (School Fees, Student Fee Payments, School Expenses, Expense Payments).
-  // Other users (including SCHOOL_BOARD_MANAGER and HEADERTEACHER) will be viewing only.
+                                                          
   const canManageFinance = isAccountant;
-
-  // On General/Academic management pages:
-  // SCHOOL_BOARD_MANAGER and ACCOUNTANT are strictly view-only (no action buttons, no actions column).
+ 
   const canManageUsers = isHeadTeacher;
   const canManageAcademic = isHeadTeacher;
   const canManageClasses = isHeadTeacher;
   const canManageParentStudents = isHeadTeacher;
   const canManageCourses = isHeadTeacher;
-  const canManageStudents = isHeadTeacher || isClassTeacher;
+  const canManageStudents = isHeadTeacher;
   const canManageAssignments = isHeadTeacher;
   const canManageGrades = !isSchoolBoardManager && !isAccountant && (isHeadTeacher || isTeacher || isClassTeacher);
   const canApproveMarks = isHeadTeacher|| isClassTeacher || isTeacher ;
+  const canManageAnnouncements = isHeadTeacher;
 
   return {
     user,
@@ -48,5 +45,6 @@ export const useRoleAccess = () => {
     canManageAssignments,
     canManageGrades,
     canApproveMarks,
+    canManageAnnouncements,
   };
 };

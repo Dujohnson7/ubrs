@@ -4,23 +4,37 @@ import HeaderTeacherHome from "./HeaderTeacherHome";
 import TeacherDashboard from "./TeacherDashboard";
 import ParentDashboard from "./ParentDashboard";
 import AccountantDashboard from "./AccountantDashboard";
+import SchoolBoardDashboard from "./SchoolBoardDashboard";
+import DashboardAnnouncements from "../../components/dashboard/DashboardAnnouncements";
  
 export default function Home() {
   const { user } = useAuth();
   const role = user?.role;
 
-  if (role === ERole.PARENT) {
-    return <ParentDashboard />;
-  }
+  const renderDashboard = () => {
+    if (role === ERole.PARENT) {
+      return <ParentDashboard />;
+    }
 
-  if (role === ERole.TEACHER || role === ERole.CLASSTEACHER) {
-    return <TeacherDashboard />;
-  }
+    if (role === ERole.TEACHER || role === ERole.CLASSTEACHER) {
+      return <TeacherDashboard />;
+    }
 
-  if (role === ERole.ACCOUNTANT) {
-    return <AccountantDashboard />;
-  }
+    if (role === ERole.ACCOUNTANT) {
+      return <AccountantDashboard />;
+    }
 
-  return <HeaderTeacherHome />;
+    if (role === ERole.SCHOOL_BOARD_MANAGER) {
+      return <SchoolBoardDashboard />;
+    }
+
+    return <HeaderTeacherHome />;
+  };
+
+  return (
+    <div className="space-y-6">
+      {renderDashboard()}
+      {role !== ERole.SCHOOL_BOARD_MANAGER && <DashboardAnnouncements />}
+    </div>
+  );
 }
-

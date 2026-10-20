@@ -6,12 +6,14 @@ import ConfirmDialog from "../../components/common/ConfirmDialog";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
-import { PencilIcon, TrashBinIcon } from "../../icons";
+import { PencilIcon, TrashBinIcon, DownloadIcon } from "../../icons";
 import { expensesPaymentsService, ExpensesPaymentsResponseDto } from "../../services/expensesPaymentsService";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
+import { generateReportPdf } from "../../utils/pdfExport";
+import { toast } from "../../utils/toast";
 
 export default function ExpensesPayments() {
-  const { canManageFinance } = useRoleAccess();
+  const { canManageFinance, user } = useRoleAccess();
   const [expensesPayments, setExpensesPayments] = useState<ExpensesPaymentsResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -117,6 +119,72 @@ export default function ExpensesPayments() {
     }
   };
 
+  const handleDownloadReport = () => {
+    if (filtered.length === 0) {
+      toast.error("No expense payment records available to download.");
+      return;
+    }
+
+    const periodParts: string[] = [];
+    if (dateFrom && dateTo) {
+      periodParts.push(`From ${formatDate(dateFrom)} to ${formatDate(dateTo)}`);
+    } else if (dateFrom) {
+      periodParts.push(`From ${formatDate(dateFrom)}`);
+    } else if (dateTo) {
+      periodParts.push(`Up to ${formatDate(dateTo)}`);
+    } else {
+      periodParts.push("All Dates");
+    }
+
+    if (expenseNameFilter) {
+      periodParts.push(`Expense: ${expenseNameFilter}`);
+    }
+    if (search) {
+      periodParts.push(`Search: "${search}"`);
+    }
+
+    const headers = [
+      ["#", "Expense Name", "Expense Date", "Amount (RWF)"]
+    ];
+
+    const body: (string | number)[][] = filtered.map((item, idx) => [
+      idx + 1,
+      item.expenseName || "—",
+      formatDate(item.expenseDate),
+      formatCurrency(item.amount),
+    ]);
+
+    const totalAmount = filtered.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    body.push(["", "TOTAL", "", formatCurrency(totalAmount)]);
+
+    generateReportPdf({
+      title: "EXPENSE PAYMENTS REPORT",
+      reportPeriod: periodParts.join(" · "),
+      preparedBy: user
+        ? `${user.names || "Staff"} (${user.role || "Finance Department"})`
+        : "Finance Officer",
+      headers,
+      body,
+    });
+  };
+
+  const handleDownloadSingleExpense = (item: ExpensesPaymentsResponseDto) => {
+    generateReportPdf({
+      title: "EXPENSE PAYMENT VOUCHER",
+      reportPeriod: formatDate(item.expenseDate),
+      preparedBy: user
+        ? `${user.names || "Staff"} (${user.role || "Finance Department"})`
+        : "Finance Officer",
+      headers: [["Field", "Details"]],
+      body: [
+        ["Payment Reference", item.expensesPaymentsId],
+        ["Expense Name", item.expenseName || "—"],
+        ["Expense Date", formatDate(item.expenseDate)],
+        ["Amount Paid", formatCurrency(item.amount)],
+      ],
+    });
+  };
+
   return (
     <>
       <PageMeta title="Ubrs - Expense Payments" description="Manage expense payments." />
@@ -169,7 +237,7 @@ export default function ExpensesPayments() {
                 />
               </div>
               {/* Actions */}
-              <div className="flex items-center gap-2 justify-end">
+              <div className="flex items-center gap-2 justify-end flex-wrap">
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
@@ -179,9 +247,19 @@ export default function ExpensesPayments() {
                     Clear
                   </button>
                 )}
+                {/* Download Document Button */}
+                <button
+                  type="button"
+                  onClick={handleDownloadReport}
+                  className="h-11 inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 transition shadow-xs"
+                  title="Download expense payments report as PDF"
+                >
+                  <DownloadIcon className="size-4" />
+                  <span>Download Document</span>
+                </button>
                 {canManageFinance && (
                   <Link to="/expense-payments/create">
-                    <Button size="sm">Add Expense Payment</Button>
+                    <Button size="sm" className="h-11">Add Expense Payment</Button>
                   </Link>
                 )}
               </div>
@@ -231,6 +309,15 @@ export default function ExpensesPayments() {
                         {canManageFinance && (
                           <TableCell className="px-5 py-4 text-gray-500 text-end text-theme-sm dark:text-gray-400">
                             <div className="flex flex-wrap gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                startIcon={<DownloadIcon className="size-4" />}
+                                onClick={() => handleDownloadSingleExpense(item)}
+                                title="Download Voucher Document"
+                                ariaLabel="Download Voucher Document"
+                                className="!px-3 !py-3 !min-w-0 rounded-full !bg-purple-100/20 !text-purple-600 hover:!bg-purple-200"
+                              />
                               <Button
                                 size="sm"
                                 variant="outline"

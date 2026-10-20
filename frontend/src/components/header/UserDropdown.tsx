@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { Link } from "react-router";
+import { Dropdown } from "../ui/dropdown/Dropdown"; 
 import { useAuth } from "../../hooks/useAuth";
 import { API_CONFIG } from "../../config/api";
 
@@ -16,13 +15,15 @@ export default function UserDropdown() {
   function closeDropdown() {
     setIsOpen(false);
   }
+
   return (
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
+        className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400 focus:outline-hidden"
+        aria-label="User Profile Menu"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
+        <span className="overflow-hidden rounded-full h-9 w-9 sm:h-10 sm:w-10 sm:mr-2.5 shrink-0 border border-gray-200 dark:border-gray-700">
           <img 
             src={user?.profile ? `${API_CONFIG.BASE_URL}/uploads/profile/${user.profile}` : "/images/userProfile.png"} 
             alt="User"
@@ -30,9 +31,9 @@ export default function UserDropdown() {
           />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{user?.names?.split(" ")[0] || "User"}</span>
+        <span className="hidden sm:block mr-1 font-medium text-theme-sm">{user?.names?.split(" ")[0] || "User"}</span>
         <svg
-          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
+          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 hidden sm:block ${
             isOpen ? "rotate-180" : ""
           }`}
           width="18"
@@ -54,13 +55,13 @@ export default function UserDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="absolute right-0 mt-[17px] flex w-[260px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark"
+        className="absolute right-0 mt-3 flex w-[260px] max-w-[calc(100vw-1.5rem)] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark z-50"
       >
         <div>
-          <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
+          <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400 truncate">
             {user?.names || "User Name"}
           </span>
-          <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
+          <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400 truncate">
             {user?.email || "user@example.com"}
           </span>
         </div>
@@ -74,9 +75,9 @@ export default function UserDropdown() {
               className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
               <svg
-                className="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
-                width="24"
-                height="24"
+                className="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300 shrink-0"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -100,9 +101,9 @@ export default function UserDropdown() {
           className="flex w-full items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
           <svg
-            className="fill-gray-500 group-hover:fill-gray-700 dark:group-hover:fill-gray-300"
-            width="24"
-            height="24"
+            className="fill-gray-500 group-hover:fill-gray-700 dark:group-hover:fill-gray-300 shrink-0"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"

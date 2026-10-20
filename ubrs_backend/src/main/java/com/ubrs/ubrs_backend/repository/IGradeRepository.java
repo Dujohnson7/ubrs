@@ -113,6 +113,81 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
 """)
     List<ClassGradeStatusProjection> findClassGradeStatus();
 
+
+
+    @Query("""
+    SELECT
+        sc.id AS classId,
+        sc.name AS className,
+        sc.classLevel AS classLevel,
+
+        sc.classTeacher.names  AS classTeacher,
+        
+        g.academicYear.id as academicYearId,
+        
+        g.academicYear.fiscalYear as academicYear,
+
+        g.term AS term,
+
+        COUNT(DISTINCT g.course.id) AS subjects,
+
+        COUNT(
+            DISTINCT
+            (CASE
+                WHEN g.submitStatus = com.ubrs.ubrs_backend.util.EGradeState.APPROVED
+                THEN g.course.id
+            END)
+        ) AS approved,
+
+        CASE
+            WHEN COUNT(DISTINCT g.course.id) = 0
+                THEN 'NOT_SUBMITTED'
+
+            WHEN COUNT(DISTINCT
+            (CASE
+                    WHEN g.submitStatus = com.ubrs.ubrs_backend.util.EGradeState.APPROVED
+                    THEN g.course.id
+                END)) = COUNT(DISTINCT g.course.id)
+                THEN 'APPROVED'
+
+            WHEN COUNT(DISTINCT
+            (CASE
+                    WHEN g.submitStatus IS NOT NULL
+                    THEN g.course.id
+                END)) = 0
+                THEN 'NOT_SUBMITTED'
+
+            WHEN COUNT(DISTINCT
+            (CASE
+                    WHEN g.submitStatus IS NOT NULL
+                    THEN g.course.id
+                END))< COUNT(DISTINCT g.course.id)
+                THEN 'PARTIAL'
+
+            ELSE 'SUBMITTED'
+        END AS status
+
+    FROM Grade g
+
+    JOIN g.schoolClass sc
+
+    WHERE g.isDeleted = false AND sc.classTeacher.id = :teacherId
+
+    GROUP BY
+        sc.id,
+        sc.name,
+        sc.classLevel,
+        sc.classTeacher.names,
+        g.term,
+        g.academicYear.id,
+        g.academicYear.fiscalYear
+
+    ORDER BY
+        sc.name,
+        g.term
+""")
+    List<ClassGradeStatusProjection> findClassGradeStatusByClassTeacher(UUID teacherId);
+
     @Query("""
     SELECT
         c.id AS courseId,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { CalenderIcon, ChevronDownIcon, GridIcon, HorizontaLDots, ListIcon, PageIcon, PieChartIcon, TableIcon, UserCircleIcon, UserIcon, TaskIcon, } from "../icons";
+import { CalenderIcon, ChevronDownIcon, GridIcon, HorizontaLDots, ListIcon, PageIcon, PieChartIcon, TableIcon, UserCircleIcon, UserIcon, TaskIcon, ChatIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../hooks/useAuth";
 import { ERole } from "../services/authService";
@@ -30,6 +30,12 @@ const allNavItems: NavItem[] = [
     path: "/users",
     roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER],
   },
+  {
+    name: "Announcements",
+    icon: <ChatIcon />,
+    path: "/announcements",
+    roles: [ERole.HEADERTEACHER],
+  }, 
   {
     name: "Parent Students",
     icon: <UserCircleIcon />,
@@ -82,13 +88,13 @@ const allNavItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Grades",
     path: "/grades",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.TEACHER, ERole.SCHOOL_BOARD_MANAGER],
+    roles: [ ERole.CLASSTEACHER, ERole.TEACHER],
   },
   {
     icon: <PageIcon />,
     name: "Marks Approval",
     path: "/marks-approval",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER],
+    roles: [ ERole.CLASSTEACHER],
   },
   {
     icon: <TableIcon />,
@@ -127,14 +133,29 @@ const allNavItems: NavItem[] = [
     roles: [ERole.ACCOUNTANT],
   },
   {
+    icon: <PageIcon />,
+    name: "Grades",
+    roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER],
+    subItems: [
+      { name: "Student Grades", path: "/grades", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "Marks Approval", path: "/marks-approval", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+    ],
+  },
+  {
     icon: <TableIcon />,
     name: "Reports",
-    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT],
+    roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER],
     subItems: [
       { name: "Student Reports", path: "/student-reports", roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
-      { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT] },
-      { name: "Financial Report", path: "/financial-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER, ERole.ACCOUNTANT] },
+      { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "Financial Report", path: "/financial-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
     ],
+  },
+  {
+    icon: <TableIcon />,
+    name: "Financial Report",
+    path: "/financial-report",
+    roles: [ERole.ACCOUNTANT],
   },
   {
     icon: <PieChartIcon />,

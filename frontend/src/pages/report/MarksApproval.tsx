@@ -23,7 +23,7 @@ function StatusBadge({ status }: { status: ApprovalStatus }) {
 
 export default function MarksApproval() {
   const navigate = useNavigate();
-  const { isSchoolBoardManager } = useRoleAccess();
+  const { isSchoolBoardManager, isClassTeacher, user } = useRoleAccess();
   const [data, setData] = useState<ClassGradeStatusProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -31,17 +31,26 @@ export default function MarksApproval() {
   const [academicYears, setAcademicYears] = useState<AcademicYearResponseDto[]>([]);
   const [yearFilter, setYearFilter] = useState("All");
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(5);
 
   useEffect(() => {
     const fetchClassGrades = async () => {
       try {
+        setLoading(true);
+        const isClassteacherUser =
+          isClassTeacher ||
+          user?.role === "CLASSTEACHER" ||
+          (typeof user?.role === "string" && user.role.toUpperCase() === "CLASSTEACHER");
+        const teacherId = user?.userId;
+
         const [res, years] = await Promise.all([
-          gradeService.getClassGradeStatus(),
+          isClassteacherUser && teacherId
+            ? gradeService.getClassGradeStatusByClassTeacher(teacherId)
+            : gradeService.getClassGradeStatus(),
           academicYearService.getAllAcademicYears(),
         ]);
-        setData(res);
-        setAcademicYears(years);
+        setData(res || []);
+        setAcademicYears(years || []);
       } catch (error) {
         console.error(error);
       } finally {
@@ -49,7 +58,7 @@ export default function MarksApproval() {
       }
     };
     fetchClassGrades();
-  }, []);
+  }, [isClassTeacher, user?.userId, user?.role]);
 
   const filtered = useMemo(() =>
     data.filter((c) => {
@@ -68,9 +77,9 @@ export default function MarksApproval() {
   const overallStats = {
     classes: data.length,
     approved: data.reduce((sum, c) => sum + (c.approved || 0), 0),
-    submitted: 0, // Not available in new projection
+    submitted: 0,
     pending: data.reduce((sum, c) => sum + ((c.subjects || 0) - (c.approved || 0)), 0),
-    rejected: 0,  // Not available in new projection
+    rejected: 0,
   };
 
   if (loading) return <div className="p-10 text-center text-gray-500">Loading...</div>;
@@ -204,14 +213,29 @@ export default function MarksApproval() {
           </div>
 
           {/* Pagination */}
-          <div className="grid gap-4 px-4 py-4 border-t border-gray-100 dark:border-white/[0.05] sm:grid-cols-[1fr_auto] sm:items-center">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>Previous</Button>
-              <span className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-sm">{currentPage}</span>
-              <Button size="sm" variant="outline" onClick={() => setPage(Math.min(pageCount, currentPage + 1))} disabled={currentPage === pageCount}>Next</Button>
+          <div className="grid gap-4 px-5 py-4 border-t border-gray-100 dark:border-white/[0.05] sm:grid-cols-[1fr_auto] sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 text-sm text-gray-500 dark:text-gray-400">
+              <span>Showing {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}</span>
+              <select
+                className="h-11 rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+            </div>
+
+            <div className="justify-self-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>Previous</Button>
+                <span className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">{currentPage}</span>
+                <Button size="sm" variant="outline" onClick={() => setPage(Math.min(pageCount, currentPage + 1))} disabled={currentPage === pageCount}>Next</Button>
+              </div>
             </div>
           </div>
         </ComponentCard>

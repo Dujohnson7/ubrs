@@ -6,10 +6,9 @@ export type EStudentState = "ACTIVE" | "INACTIVE" | "GRADUATED" | "SUSPENDED";
 
 export interface ParentStudentResponseDto {
   parentId?: string;
-  names?: string;
-  phone?: string;
-  email?: string;
-  relationship?: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
   [key: string]: unknown;
 }
 
