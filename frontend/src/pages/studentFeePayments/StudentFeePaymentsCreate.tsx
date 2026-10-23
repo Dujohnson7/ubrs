@@ -7,6 +7,7 @@ import Input from "../../components/form/input/InputField";
 import { toast } from "../../utils/toast";
 import { studentService, StudentResponseDto } from "../../services/studentService";
 import { schoolFeesService, SchoolFeesResponseDto } from "../../services/schoolFeesService";
+import { schoolClassService, SchoolClassResponseDto } from "../../services/schoolClassService";
 import {
   studentFeePaymentService,
   ETerm,
@@ -44,8 +45,7 @@ function StudentCombobox({ students, selectedStudentId, onSelect }: StudentCombo
     });
   }, [students, query]);
 
-  // Close dropdown on outside click
-  useEffect(() => {
+   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -55,8 +55,7 @@ function StudentCombobox({ students, selectedStudentId, onSelect }: StudentCombo
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Scroll highlighted item into view
-  useEffect(() => {
+   useEffect(() => {
     if (highlightIndex >= 0 && listRef.current) {
       const item = listRef.current.children[highlightIndex] as HTMLElement | undefined;
       item?.scrollIntoView({ block: "nearest" });
@@ -218,6 +217,7 @@ export default function StudentFeePaymentsCreate() {
   const navigate = useNavigate();
   const { canManageFinance } = useRoleAccess();
   const [students, setStudents] = useState<StudentResponseDto[]>([]);
+  const [schoolClasses, setSchoolClasses] = useState<SchoolClassResponseDto[]>([]);
 
   useEffect(() => {
     if (!canManageFinance) {
@@ -240,12 +240,14 @@ export default function StudentFeePaymentsCreate() {
     const loadDependencies = async () => {
       try {
         setLoading(true);
-        const [studentsData, feesData] = await Promise.all([
+        const [studentsData, feesData, classesData] = await Promise.all([
           studentService.getAllStudents().catch(() => []),
           schoolFeesService.getAllSchoolFees().catch(() => []),
+          schoolClassService.getAllSchoolClasses().catch(() => []),
         ]);
         setStudents(studentsData);
         setSchoolFeesList(feesData);
+        setSchoolClasses(classesData);
 
         if (studentsData.length > 0) {
           setStudentId(studentsData[0].studentId);
@@ -274,12 +276,18 @@ export default function StudentFeePaymentsCreate() {
     [schoolFeesList, schoolFeesId],
   );
 
-  // Determine school level from the selected student's class name
+  // Determine school level from the selected student's actual class record
   const inferredLevel: ESchoolLevel = useMemo(() => {
-    const className = selectedStudent?.schoolClassName?.toUpperCase() || "";
+    if (!selectedStudent) return "PRIMARY";
+    const studentClass = schoolClasses.find(
+      (sc) => sc.schoolClassId === selectedStudent.schoolClassId,
+    );
+    if (studentClass) return studentClass.classLevel;
+    // Fallback: guess from class name if class record not found
+    const className = selectedStudent.schoolClassName?.toUpperCase() || "";
     if (className.includes("NURSERY")) return "NURSERY";
     return "PRIMARY";
-  }, [selectedStudent]);
+  }, [selectedStudent, schoolClasses]);
 
   const targetFee = useMemo(() => {
     if (!selectedSchoolFee) return 0;
@@ -430,7 +438,7 @@ export default function StudentFeePaymentsCreate() {
                     Initial Installment (Optional)
                   </h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    If the student or parent is making an initial payment right now, enter the amount below.
+                    If the student is making an initial payment right now, enter the amount below.
                   </p>
 
                   <div className="grid gap-4 sm:grid-cols-2">
