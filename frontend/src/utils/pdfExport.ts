@@ -182,7 +182,7 @@ export const generateReportPdf = (options: PdfOptions) => {
 
     // Line 1: Name without ()
     doc.setFont("helvetica", "bold");
-    doc.text("Prepared By:", 14, footerY);
+    doc.text("Approved By:", 14, footerY);
     doc.setFont("helvetica", "normal");
     doc.text(signatoryName, 45, footerY);
 

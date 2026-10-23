@@ -838,11 +838,10 @@ export default function StudentFeePayments() {
                           {/* Level */}
                           <TableCell className="px-4 py-3 text-start text-theme-sm text-gray-600 dark:text-gray-300">
                             <span
-                              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                item.studentLevel === "PRIMARY"
+                              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${item.studentLevel === "PRIMARY"
                                   ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                                   : "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                              }`}
+                                }`}
                             >
                               {item.studentLevel || "—"}
                             </span>
@@ -854,7 +853,7 @@ export default function StudentFeePayments() {
                               <span>{item.schoolFees?.fiscalYear || "—"}</span>
                               <span className="text-gray-400">·</span>
                               <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
-                                {item.term }
+                                {item.term}
                               </span>
                             </div>
                           </TableCell>
@@ -867,11 +866,10 @@ export default function StudentFeePayments() {
                           {/* Remaining */}
                           <TableCell className="px-4 py-3 text-start text-theme-sm">
                             <span
-                              className={`font-semibold ${
-                                item.remainAmount > 0
+                              className={`font-semibold ${item.remainAmount > 0
                                   ? "text-red-600 dark:text-red-400"
                                   : "text-gray-400 dark:text-gray-500"
-                              }`}
+                                }`}
                             >
                               {formatCurrency(item.remainAmount)}
                             </span>
@@ -991,13 +989,13 @@ export default function StudentFeePayments() {
               </div>
             )}
 
-            {signatory && (
+            {/*signatory && (
               <PageSignatureBlock
                 name={signatory.name}
                 role={signatory.role}
                 signatureUrl={signatory.signatureUrl}
               />
-            )}
+            )*/}
           </div>
         </ComponentCard>
       </div>
