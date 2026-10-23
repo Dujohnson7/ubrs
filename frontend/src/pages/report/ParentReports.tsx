@@ -18,6 +18,7 @@ import {
   isFullYearReport,
   gradeColor,
 } from "./reportPrintUtils";
+import { studentFeePaymentService } from "../../services/studentFeePaymentService";
 import { loadReportSignatories } from "./reportSignatures";
 import { toast } from "../../utils/toast";
 
@@ -98,6 +99,7 @@ export default function ParentReports() {
   const [loadingReports, setLoadingReports] = useState<boolean>(false);
   const [reportCards, setReportCards] = useState<ChildReportCardData[]>([]);
   const [selectedModalReport, setSelectedModalReport] = useState<StudentReport | null>(null);
+  const [feePaidMap, setFeePaidMap] = useState<Record<string, boolean>>({});
 
   // Load initial parent children and academic years
   useEffect(() => {
@@ -213,6 +215,33 @@ export default function ParentReports() {
 
     void loadReports();
   }, [user?.userId, selectedYearId, selectedTerm, children, years]);
+
+  // Fetch payment status for each child to determine if download should be shown
+  useEffect(() => {
+    if (!children.length || !selectedYearId) {
+      setFeePaidMap({});
+      return;
+    }
+    const fetchStatuses = async () => {
+      const map: Record<string, boolean> = {};
+      await Promise.all(
+        children.map(async (child) => {
+          try {
+            const paid = await studentFeePaymentService.isStudentPayFees(
+              child.studentId,
+              selectedTerm as any,
+              selectedYearId
+            );
+            map[child.studentId] = paid;
+          } catch {
+            map[child.studentId] = false;
+          }
+        })
+      );
+      setFeePaidMap(map);
+    };
+    void fetchStatuses();
+  }, [children, selectedTerm, selectedYearId]);
 
   // Filter report cards by selected child
   const visibleCards = useMemo(() => {
@@ -338,6 +367,7 @@ export default function ParentReports() {
                       <div className="flex flex-wrap items-center gap-2">
                         {report ? (
                           <>
+                            {feePaidMap[child.studentId] ? ( 
                             <Button
                               size="sm"
                               variant="outline"
@@ -345,12 +375,20 @@ export default function ParentReports() {
                             >
                               View Marksheet
                             </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => printStudentReport(report)}
-                            >
-                              Print / Download PDF
-                            </Button>
+                            ) : (
+                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                Fee Not Yet Paid Fully
+                              </span>
+                            )}
+
+                            {feePaidMap[child.studentId] && ( 
+                              <Button
+                                size="sm"
+                                onClick={() => printStudentReport(report)}
+                              >
+                                Print / Download PDF
+                              </Button>
+                            )}
                           </>
                         ) : (
                           <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -361,7 +399,7 @@ export default function ParentReports() {
                     </div>
 
                     {/* Report Details */}
-                    {report ? (
+                     {feePaidMap[child.studentId] && ( report ? (
                       <div className="p-6">
                         {/* Subject Marks Breakdown Table */}
                         <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
@@ -425,7 +463,7 @@ export default function ParentReports() {
                       <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
                         No approved marks recorded for {child.studentName} in {years.find((y) => y.academicYearId === selectedYearId)?.fiscalYear || "this year"} ({reportTermLabel}).
                       </div>
-                    )}
+                    ))}
                   </div>
                 );
               })}

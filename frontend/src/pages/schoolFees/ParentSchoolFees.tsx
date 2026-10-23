@@ -361,13 +361,13 @@ export default function ParentSchoolFees() {
               <TableHeader>
                 <TableRow className="bg-gray-50/75 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
                   <TableCell isHeader className="w-12 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Student</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Academic Year</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Term</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount Paid</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Remaining Balance</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</TableCell>
-                  <TableCell isHeader className="text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Action</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Student</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Academic Year</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Term</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Amount Paid</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Remaining Balance</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Action</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -403,46 +403,22 @@ export default function ParentSchoolFees() {
                         </TableCell>
 
                         {/* Student */}
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="size-9 rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400 flex items-center justify-center text-xs font-bold border border-brand-100 dark:border-brand-900/30">
-                              {(item.firstName || "S").charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900 dark:text-white text-sm">
-                                {studentFullName || "Student"}
-                              </div>
-                              <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                {item.studentCode || "—"}
-                              </span>
-                            </div>
-                          </div>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400"> 
+                          {studentFullName || "Student"}
                         </TableCell>
 
                         {/* Academic Year */}
-                        <TableCell>
-                          <div className="inline-flex items-center gap-1.5 font-medium text-gray-800 dark:text-gray-200 text-sm">
-                            <CalenderIcon className="w-3.5 h-3.5 text-gray-400" />
-                            {item.fiscalYear || "—"}
-                          </div>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">  {item.fiscalYear || "—"} 
                         </TableCell>
 
                         {/* Term */}
-                        <TableCell>
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200/50 dark:border-gray-700/50">
-                            {formatTermLabel(item.term)}
-                          </span>
-                        </TableCell>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400"> {formatTermLabel(item.term)} </TableCell>
 
                         {/* Total Paid */}
-                        <TableCell>
-                          <span className="font-bold text-green-600 dark:text-green-400 text-sm">
-                            {formatCurrency(item.totalAmountPaid)}
-                          </span>
-                        </TableCell>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">  {formatCurrency(item.totalAmountPaid)} </TableCell>
 
                         {/* Remaining Amount */}
-                        <TableCell>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           {isFullyPaid ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 px-2.5 py-0.5 rounded-full">
                               <CheckCircleIcon className="w-3.5 h-3.5" />
@@ -456,7 +432,7 @@ export default function ParentSchoolFees() {
                         </TableCell>
 
                         {/* Payment Status */}
-                        <TableCell>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           <Badge
                             color={
                               item.paymentStatus === "PAID"
@@ -478,8 +454,7 @@ export default function ParentSchoolFees() {
                             variant="outline"
                             className="inline-flex items-center gap-1.5 text-xs font-medium hover:border-brand-500 hover:text-brand-600"
                           >
-                            <EyeIcon className="w-3.5 h-3.5" />
-                            Fee Breakdown & Installments
+                            <EyeIcon className="w-3.5 h-3.5" /> 
                           </Button>
                         </TableCell>
                       </TableRow>

@@ -313,6 +313,28 @@ async function getParentStudentPaymentHistory(
   );
 }
 
+// New function to check if student has paid fees for a given term and academic year
+async function isStudentPayFees(
+  studentId: string,
+  term: ETerm,
+  academicYearId: string
+): Promise<boolean> {
+  const response = await fetch(
+    getApiUrl(`/api/studentFeePayment/isStudentPayFees/${studentId}?term=${term}&academicYearId=${academicYearId}`),
+    { headers: getAuthHeaders(true) }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    toast.error(message || "Failed to check student fee payment status");
+    throw new Error(message || "Failed to check student fee payment status");
+  }
+
+  // API returns boolean JSON
+  const result = await response.json();
+  return !!result;
+}
+
 export const studentFeePaymentService = {
   getAllStudentFeePayments,
   getStudentFeePaymentsById,
@@ -324,4 +346,5 @@ export const studentFeePaymentService = {
   deleteStudentFeePayments,
   getAllStudentFeePaymentsByStudentId,
   getParentStudentPaymentHistory,
+  isStudentPayFees,
 };

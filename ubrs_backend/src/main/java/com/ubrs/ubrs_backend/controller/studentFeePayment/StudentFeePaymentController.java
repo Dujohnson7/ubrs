@@ -119,6 +119,17 @@ public class StudentFeePaymentController {
     }
 
 
+    @GetMapping("/isStudentPayFees/{studentId}")
+        public ResponseEntity<Boolean> isStudentPayFees(@PathVariable String studentId, @RequestParam ETerm term, @RequestParam String academicYearId) {
+        try {
+            boolean respond =  studentFeePaymentService.isStudentPayFees(UUID.fromString(studentId), UUID.fromString(academicYearId), term);
+            return ResponseEntity.ok(respond);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<StudentFeePaymentsResponseDto>> getAllStudentFeePaymentsByStudentId(@PathVariable String studentId){
         try {

@@ -10,7 +10,7 @@ import {
 } from "../../services/parentDashboardService";
 import { studentReportService } from "../../services/studentReportService";
 import { buildStudentReportsFromGrades, printStudentReport, ClassInfo } from "../report/reportPrintUtils";
-import { loadReportSignatories } from "../report/reportSignatures";
+import { studentFeePaymentService } from "../../services/studentFeePaymentService";
 import { DollarLineIcon } from "../../icons";
 import { toast } from "../../utils/toast";
 
@@ -46,6 +46,8 @@ export default function ParentDashboard() {
   const [performance, setPerformance] = useState<ChildPerformance[]>([]);
   const [error, setError] = useState("");
   const [downloadingReport, setDownloadingReport] = useState<string | null>(null);
+  const [feePaidMap, setFeePaidMap] = useState<Record<string, boolean>>({});
+  // duplicate feePaidMap declaration removed
 
   useEffect(() => {
     const load = async () => {
@@ -232,6 +234,7 @@ export default function ParentDashboard() {
                       disabled={isDownloading || !child.schoolClassId}
                       size="sm"
                       variant="outline"
+                      hidden={!feePaidMap[child.studentId]}
                     >
                       {isDownloading ? "Downloading..." : "Download Report"}
                     </Button>

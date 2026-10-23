@@ -30,5 +30,6 @@ public interface IStudentFeePaymentService {
     long totalStudentUnpaid(ETerm term);
     double schoolFeeCompletionRate(ETerm term);
     List<ParentStudentPaymentHistoryProjection> getParentStudentPaymentHistory(UUID parentId, UUID academicYearId, ETerm term);
+    boolean isStudentPayFees(UUID studentId, UUID academicId , ETerm term);
 
 }

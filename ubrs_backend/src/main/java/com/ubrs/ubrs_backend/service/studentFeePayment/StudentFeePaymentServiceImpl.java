@@ -607,6 +607,11 @@ public class StudentFeePaymentServiceImpl implements IStudentFeePaymentService{
         return studentFeePaymentRepository.findParentStudentPaymentHistory(parentId, academicYearId, term);
     }
 
+    @Override
+    public boolean isStudentPayFees(UUID studentId, UUID academicId, ETerm term) {
+        return studentFeePaymentRepository.existsByStudent_IdAndPaymentStatusAndSchoolFees_AcademicYear_IdAndTermAndIsDeleted(studentId, EPaymentState.PAID, academicId, term, false);
+    }
+
 
     private double getStudentOverPaidAmount(double totalPaidAmount, double amountMustPayment) {
         return Math.max(0.0, totalPaidAmount - amountMustPayment);

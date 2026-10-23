@@ -349,13 +349,13 @@ export default function ParentSchoolFeesBreakdown() {
               <TableHeader>
                 <TableRow className="bg-gray-50/75 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
                   <TableCell isHeader className="w-12 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Academic Year</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Term</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">School Level</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Required Fee</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Paid</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Remaining</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Academic Year</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Term</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">School Level</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Required Fee</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Total Paid</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Remaining</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -384,33 +384,22 @@ export default function ParentSchoolFeesBreakdown() {
                         <TableCell className="text-center text-xs text-gray-400 font-medium">
                           {idx + 1}
                         </TableCell>
-                        <TableCell>
-                          <div className="inline-flex items-center gap-1.5 font-medium text-gray-800 dark:text-gray-200 text-sm">
-                            <CalenderIcon className="w-3.5 h-3.5 text-gray-400" />
-                            {item.schoolFees?.fiscalYear || "—"}
-                          </div>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400"> 
+                            {item.schoolFees?.fiscalYear || "—"} 
                         </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                            {formatTermLabel(item.term)}
-                          </span>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                           {formatTermLabel(item.term)}  
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                            {item.studentLevel || "Primary"}
-                          </span>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                           {item.studentLevel || "Primary"} 
                         </TableCell>
-                        <TableCell>
-                          <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                             {formatCurrency(targetAmount || item.totalAmountPaid + item.remainAmount)}
-                          </span>
                         </TableCell>
-                        <TableCell>
-                          <span className="font-bold text-green-600 dark:text-green-400 text-sm">
-                            {formatCurrency(item.totalAmountPaid)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400"> 
+                            {formatCurrency(item.totalAmountPaid)} 
+                        </TableCell> 
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           {isFullyPaid ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 px-2 py-0.5 rounded-full">
                               <CheckCircleIcon className="w-3.5 h-3.5" />
@@ -451,11 +440,11 @@ export default function ParentSchoolFeesBreakdown() {
               <TableHeader>
                 <TableRow className="bg-gray-50/75 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
                   <TableCell isHeader className="w-12 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Academic Year & Term</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Payment Date</TableCell>
-                  <TableCell isHeader className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Receipt / Transaction Ref</TableCell>
-                  <TableCell isHeader className="text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount Paid</TableCell>
-                  <TableCell isHeader className="text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Academic Year & Term</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Payment Date</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Receipt / Transaction Ref</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Amount Paid</TableCell>
+                  <TableCell  isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -483,28 +472,21 @@ export default function ParentSchoolFeesBreakdown() {
                       <TableCell className="text-center text-xs text-gray-400 font-medium">
                         {idx + 1}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div className="font-semibold text-gray-900 dark:text-white text-xs">
                           {inst.fiscalYear} • {inst.term}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="inline-flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
-                          <CalenderIcon className="w-3.5 h-3.5 text-gray-400" />
-                          {formatDate(inst.paidDate)}
-                        </div>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">  
+                          {formatDate(inst.paidDate)} 
                       </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                          {inst.id.slice(0, 8).toUpperCase()}
-                        </span>
+                      <TableCell  className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400"> 
+                          {inst.id.slice(0, 8).toUpperCase()} 
                       </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-bold text-green-600 dark:text-green-400 text-sm">
-                          {formatCurrency(inst.amountPaid)}
-                        </span>
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400"> 
+                          {formatCurrency(inst.amountPaid)} 
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <Badge
                           color={
                             inst.paymentStatus === "PAID"

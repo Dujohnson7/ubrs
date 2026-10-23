@@ -3,6 +3,7 @@ package com.ubrs.ubrs_backend.repository;
 
 import com.ubrs.ubrs_backend.domain.entity.StudentFeePayments;
 import com.ubrs.ubrs_backend.domain.projection.ParentStudentPaymentHistoryProjection;
+import com.ubrs.ubrs_backend.util.EPaymentState;
 import com.ubrs.ubrs_backend.util.ESchoolLevel;
 import com.ubrs.ubrs_backend.util.ETerm;
 import jakarta.transaction.Transactional;
@@ -119,4 +120,6 @@ public interface IStudentFeePaymentRepository extends JpaRepository<StudentFeePa
     ORDER BY s.firstName, s.lastName, sf.academicYear.fiscalYear, p.term
     """)
     List<ParentStudentPaymentHistoryProjection> findParentStudentPaymentHistory(UUID parentId, UUID academicYearId, ETerm term);
+
+    boolean existsByStudent_IdAndPaymentStatusAndSchoolFees_AcademicYear_IdAndTermAndIsDeleted(UUID studentId, EPaymentState paymentStatus, UUID schoolFeesAcademicYearId, ETerm term, Boolean isDeleted);
 }
