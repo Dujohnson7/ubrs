@@ -20,7 +20,7 @@ export const useRoleAccess = () => {
   const canManageClasses = isHeadTeacher;
   const canManageParentStudents = isHeadTeacher;
   const canManageCourses = isHeadTeacher;
-  const canManageStudents = isHeadTeacher;
+  const canManageStudents = isHeadTeacher || isClassTeacher;
   const canManageAssignments = isHeadTeacher;
   const canManageGrades = !isSchoolBoardManager && !isAccountant && (isHeadTeacher || isTeacher || isClassTeacher);
   const canApproveMarks = isHeadTeacher|| isClassTeacher || isTeacher ;
