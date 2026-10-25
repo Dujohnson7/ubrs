@@ -13,6 +13,9 @@ import ParentStudents from "./pages/parentStudents/ParentStudents";
 import ParentStudentsCreate from "./pages/parentStudents/ParentStudentsCreate";
 import ParentStudentsEdit from "./pages/parentStudents/ParentStudentsEdit";
 import ParentStudentsDetails from "./pages/parentStudents/ParentStudentsDetails";
+import OtherIncomeList from "./pages/otherIncome/OtherIncomeList";
+import OtherIncomeCreate from "./pages/otherIncome/OtherIncomeCreate";
+import OtherIncomeEdit from "./pages/otherIncome/OtherIncomeEdit";
 import AcademicYears from "./pages/academicYear/AcademicYears";
 import AcademicYearsCreate from "./pages/academicYear/AcademicYearsCreate";
 import AcademicYearsEdit from "./pages/academicYear/AcademicYearsEdit";
@@ -138,7 +141,10 @@ export default function App() {
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/announcements/create" element={<AnnouncementsCreate />} />
             <Route path="/announcements/edit" element={<AnnouncementsEdit />} />
-            <Route path="/calendar" element={<Calendar />} /> 
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/other-income" element={<OtherIncomeList />} />
+            <Route path="/other-income/create" element={<OtherIncomeCreate />} />
+            <Route path="/other-income/edit" element={<OtherIncomeEdit />} /> 
           </Route>
 
           {/* Auth Layout */}

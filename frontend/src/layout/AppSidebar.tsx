@@ -133,6 +133,12 @@ const allNavItems: NavItem[] = [
     roles: [ERole.ACCOUNTANT],
   },
   {
+    icon: <PieChartIcon />,
+    name: "Other Income", 
+    path: "/other-income",
+    roles: [ERole.ACCOUNTANT],
+  },
+  {
     icon: <PageIcon />,
     name: "Grades",
     roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER],
@@ -166,6 +172,7 @@ const allNavItems: NavItem[] = [
       { name: "Student Fee Payments", path: "/student-fee-payments", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
       { name: "School Expenses", path: "/school-expenses", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
       { name: "Expense Payments", path: "/expense-payments", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "Other Income", path: "/other-income", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
     ],
   },
 ];

@@ -367,13 +367,13 @@ export default function ExpensesPayments() {
               </div>
             </div>
 
-            {signatory && (
+            {/*signatory && (
               <PageSignatureBlock
                 name={signatory.name}
                 role={signatory.role}
                 signatureUrl={signatory.signatureUrl}
               />
-            )}
+            )}*/}
           </div>
         </ComponentCard>
       </div>
