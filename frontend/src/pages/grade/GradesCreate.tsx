@@ -199,6 +199,7 @@ export default function GradesCreate() {
                     <option value="">Select grade type</option>
                     <option value="TEST">Test</option>
                     <option value="EXAM">Exam</option>
+                    <option value="MID_TERM">Mid Term</option>
                   </select>
                 </div>
 

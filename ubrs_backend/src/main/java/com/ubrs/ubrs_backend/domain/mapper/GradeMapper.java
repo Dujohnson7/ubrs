@@ -21,6 +21,7 @@ public interface GradeMapper {
     @Mapping(source = "course.id", target = "courseId")
     @Mapping(source = "course.courseCode", target = "courseCode")
     @Mapping(source = "course.courseName", target = "courseName")
+    @Mapping(source = "teacher.id", target = "teacherId")
     GradeResponseDto toGradeDto(Grade grade);
 
     @Mapping(source = "academicYearId", target = "academicYear.id")

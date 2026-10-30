@@ -48,6 +48,8 @@ import SubjectMarksApproval from "./pages/report/SubjectMarksApproval";
 import SchoolReports from "./pages/report/SchoolReports";
 import FinancialReport from "./pages/report/FinancialReport";
 import ParentReports from "./pages/report/ParentReports";
+import MidTermReport from "./pages/report/MidTermReport";
+import ClassMidTermReport from "./pages/report/ClassMidTermReport";
 import SchoolFees from "./pages/schoolFees/SchoolFees";
 import SchoolFeesCreate from "./pages/schoolFees/SchoolFeesCreate";
 import SchoolFeesEdit from "./pages/schoolFees/SchoolFeesEdit";
@@ -111,6 +113,7 @@ export default function App() {
             <Route path="/grades/edit" element={<GradesEdit />} />
             <Route path="/grades/details" element={<GradeDetails />} />
             <Route path="/student-reports" element={<StudentReports />} />
+            <Route path="/student-reports/detail" element={<ClassStudentReports />} />
             <Route path="/student-reports/:classId" element={<ClassStudentReports />} />
             <Route path="/marks-approval" element={<MarksApproval />} />
             <Route path="/marks-approval/details" element={<ClassSubjectsApproval />} />
@@ -119,6 +122,8 @@ export default function App() {
             <Route path="/financial-report" element={<FinancialReport />} />
             <Route path="/parent/reports" element={<ParentReports />} />
             <Route path="/parent-reports" element={<ParentReports />} />
+            <Route path="/midterm-reports" element={<MidTermReport />} />
+            <Route path="/midterm-reports/detail" element={<ClassMidTermReport />} />
             <Route path="/parent/school-fees" element={<ParentSchoolFees />} />
             <Route path="/parent/school-fees/breakdown" element={<ParentSchoolFeesBreakdown />} />
             <Route path="/parent-school-fees" element={<ParentSchoolFees />} />

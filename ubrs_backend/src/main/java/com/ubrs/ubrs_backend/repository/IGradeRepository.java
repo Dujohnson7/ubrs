@@ -2,6 +2,8 @@ package com.ubrs.ubrs_backend.repository;
 
 import com.ubrs.ubrs_backend.domain.entity.AcademicYear;
 import com.ubrs.ubrs_backend.domain.entity.Grade;
+import com.ubrs.ubrs_backend.domain.entity.SchoolClass;
+import com.ubrs.ubrs_backend.domain.entity.Users;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeDetailProjection;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeStatusProjection;
 import com.ubrs.ubrs_backend.util.EGradeState;
@@ -42,7 +44,9 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
     @Query("""
     SELECT
         sc.id AS classId,
+
         sc.name AS className,
+        
         sc.classLevel AS classLevel,
 
         sc.classTeacher.names  AS classTeacher,
@@ -96,6 +100,7 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
     JOIN g.schoolClass sc
 
     WHERE g.isDeleted = false
+          AND g.gradeType != GradeType.MID_TERM
 
     GROUP BY
         sc.id,
@@ -109,21 +114,21 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
     ORDER BY
         sc.name,
         g.term
-""")
+    """)
     List<ClassGradeStatusProjection> findClassGradeStatus();
-
-
 
     @Query("""
     SELECT
         sc.id AS classId,
+        
         sc.name AS className,
+        
         sc.classLevel AS classLevel,
 
         sc.classTeacher.names  AS classTeacher,
-        
+    
         g.academicYear.id as academicYearId,
-        
+    
         g.academicYear.fiscalYear as academicYear,
 
         g.term AS term,
@@ -171,6 +176,7 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
     JOIN g.schoolClass sc
 
     WHERE g.isDeleted = false AND sc.classTeacher.id = :teacherId
+          AND g.gradeType != GradeType.MID_TERM
 
     GROUP BY
         sc.id,
@@ -184,8 +190,79 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
     ORDER BY
         sc.name,
         g.term
-""")
+    """)
     List<ClassGradeStatusProjection> findClassGradeStatusByClassTeacher(UUID teacherId);
+
+    @Query("""
+    SELECT
+        sc.id AS classId,
+        sc.name AS className,
+        sc.classLevel AS classLevel,
+        sc.classTeacher.names  AS classTeacher,
+        g.academicYear.id as academicYearId,
+        g.academicYear.fiscalYear as academicYear,
+        g.term AS term,
+        COUNT(DISTINCT g.course.id) AS subjects
+ 
+    FROM Grade g
+
+    JOIN g.schoolClass sc
+
+    WHERE g.isDeleted = false
+          AND g.gradeType = GradeType.MID_TERM
+
+    GROUP BY
+        sc.id,
+        sc.name,
+        sc.classLevel,
+        sc.classTeacher.names,
+        g.term,
+        g.academicYear.id,
+        g.academicYear.fiscalYear
+
+    ORDER BY
+        sc.name,
+        g.term
+    """)
+    List<ClassGradeStatusProjection> findClassMidTermGrades();
+
+    @Query("""
+    SELECT
+        sc.id AS classId,
+        sc.name AS className,
+        sc.classLevel AS classLevel,
+        sc.classTeacher.names  AS classTeacher,
+        g.academicYear.id as academicYearId,
+        g.academicYear.fiscalYear as academicYear,
+        g.term AS term,
+        COUNT(DISTINCT g.course.id) AS subjects
+
+    FROM Grade g
+
+    JOIN g.schoolClass sc
+
+    WHERE g.isDeleted = false AND sc.classTeacher.id = :teacherId
+          AND g.gradeType = GradeType.MID_TERM
+
+    GROUP BY
+        sc.id,
+        sc.name,
+        sc.classLevel,
+        sc.classTeacher.names,
+        g.term,
+        g.academicYear.id,
+        g.academicYear.fiscalYear
+
+    ORDER BY
+        sc.name,
+        g.term
+    """)
+    List<ClassGradeStatusProjection> findClassMidTermGradesByClassTeacher(UUID teacherId);
+
+
+    @Query("SELECT g.schoolClass.classTeacher FROM Grade g WHERE g.id = :gradeId  AND g.isDeleted = false")
+    Optional<Users> findClassTeacherByGrade(UUID gradeId);
+
 
     @Query("""
     SELECT
@@ -257,11 +334,7 @@ public interface IGradeRepository extends JpaRepository<Grade, UUID> {
 
     ORDER BY c.courseName
     """)
-    List<ClassGradeDetailProjection> findClassGradeDetails(
-            @Param("classId") UUID classId,
-            @Param("academicYearId") UUID academicYearId,
-            @Param("term") ETerm term
-    );
+    List<ClassGradeDetailProjection> findClassGradeDetails(@Param("classId") UUID classId, @Param("academicYearId") UUID academicYearId, @Param("term") ETerm term);
 
     List<Grade> findAllByAcademicYear_IdAndTermAndSchoolClass_IdAndCourse_IdAndIsDeleted(UUID academicYearId, ETerm term, UUID schoolClassId, UUID courseId, Boolean isDeleted);
 

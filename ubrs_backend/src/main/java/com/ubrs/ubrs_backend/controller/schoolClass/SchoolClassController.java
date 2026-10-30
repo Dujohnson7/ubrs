@@ -20,8 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/api/schoolClass")
 public class SchoolClassController {
-
-
+    
     private final ISchoolClassService schoolClassService;
     private final IUsersService usersService;
 

@@ -25,6 +25,8 @@ const formatLevel = (level?: string) => {
   return level;
 };
 
+const formatTerm = (t?: string) => (t || "").replace(/^TERM(\d)$/i, "Term $1") || "—";
+
 export default function StudentReports() {
   const { user } = useAuth();
   const isClassTeacher = user?.role === ERole.CLASSTEACHER;
@@ -91,7 +93,7 @@ export default function StudentReports() {
           }))
         );
       } catch (error) {
-        console.error(error);
+        //console.error(error);
       } finally {
         setLoading(false);
       }
@@ -104,7 +106,10 @@ export default function StudentReports() {
   const classesForYear = useMemo(() => {
     return classes.map((c) => {
       const matches = classGrades.filter(
-        (g) => g.classId === c.id && (!yearFilter || g.academicYearId === yearFilter)
+        (g) =>
+          g.classId === c.id &&
+          (!yearFilter || g.academicYearId === yearFilter) &&
+          (!termFilter || g.term === termFilter)
       );
       const approvedSubjects = matches.reduce((sum, g) => sum + (g.approved || 0), 0);
       const hasGrades = matches.length > 0;
@@ -112,11 +117,12 @@ export default function StudentReports() {
         ...c,
         academicYear: selectedYear?.fiscalYear || c.academicYear,
         academicYearId: yearFilter || c.academicYearId,
+        term: termFilter,
         hasGrades,
         approvedSubjects,
       };
     });
-  }, [classes, classGrades, yearFilter, selectedYear]);
+  }, [classes, classGrades, yearFilter, termFilter, selectedYear]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -173,9 +179,9 @@ export default function StudentReports() {
     }
     try {
       const classData = await withSignatories(item);
-      navigate(`/student-reports/${item.id}`, { state: { classData } });
+      navigate("/student-reports/detail", { state: { classData } });
     } catch {
-      navigate(`/student-reports/${item.id}`, { state: { classData: toClassInfo(item) } });
+      navigate("/student-reports/detail", { state: { classData: toClassInfo(item) } });
     }
   };
 
@@ -200,8 +206,7 @@ export default function StudentReports() {
         return;
       }
       printAllClassReports(classInfo, reports);
-    } catch (error) {
-      console.error(error);
+    } catch (error) { 
       toast.error("Failed to load reports for printing");
     } finally {
       setPrintingClassId(null);
@@ -308,6 +313,7 @@ export default function StudentReports() {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Class Teacher</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Students</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Approved Subjects</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Term</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Year</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
@@ -315,7 +321,7 @@ export default function StudentReports() {
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginated.length === 0 ? (
                     <TableRow>
-                      <TableCell className="px-5 py-10 text-center text-gray-400 text-theme-sm" colSpan={9}>
+                      <TableCell className="px-5 py-10 text-center text-gray-400 text-theme-sm" colSpan={10}>
                         No classes found.
                       </TableCell>
                     </TableRow>
@@ -349,6 +355,9 @@ export default function StudentReports() {
                           </span>
                         </TableCell>
                         <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                          {formatTerm(item.term || termFilter)}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           {selectedYear?.fiscalYear || "—"}
                         </TableCell>
                         <TableCell className="px-5 py-4 text-start text-theme-sm">
@@ -356,8 +365,9 @@ export default function StudentReports() {
                             <button
                               id={`view-class-${item.id}`}
                               onClick={() => handleView(item)}
+                              disabled={printingClassId === item.id || item.approvedSubjects === 0}
                               title="View Students"
-                              className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors dark:bg-brand-900/30 dark:text-brand-300 dark:hover:bg-brand-900/50"
+                              className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors dark:bg-brand-900/30 dark:text-brand-300 dark:hover:bg-brand-900/50  disabled:opacity-50"
                             >
                               View Details
                             </button>

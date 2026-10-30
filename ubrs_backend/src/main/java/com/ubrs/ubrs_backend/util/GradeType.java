@@ -2,6 +2,7 @@ package com.ubrs.ubrs_backend.util;
 
 public enum GradeType {
     TEST,
-    EXAM
+    EXAM,
+    MID_TERM
 
 }

@@ -3,8 +3,10 @@ package com.ubrs.ubrs_backend.service.grade;
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeDetailsRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeResponseDto;
+import com.ubrs.ubrs_backend.domain.dto.users.UsersResponseDto;
 import com.ubrs.ubrs_backend.domain.entity.*;
 import com.ubrs.ubrs_backend.domain.mapper.GradeMapper;
+import com.ubrs.ubrs_backend.domain.mapper.UsersMapper;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeDetailProjection;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeStatusProjection;
 import com.ubrs.ubrs_backend.repository.*;
@@ -36,6 +38,7 @@ public class GradeServiceImpl implements IGradeService {
     private final IUserRepository userRepository;
     private final IGradeRepository gradeRepository;
     private final GradeMapper courseAssigmentMapper;
+    private final UsersMapper usersMapper;
     private final ICourseRepository courseRepository;
     private final IStudentRepository studentRepository;
     private final ISchoolClassRepository schoolClassRepository;
@@ -407,6 +410,24 @@ public class GradeServiceImpl implements IGradeService {
     public List<GradeResponseDto> getAllGradesByClass(UUID classId) {
         List<Grade> gradeList =  gradeRepository.findAllByAcademicYear_IdAndSchoolClass_IdAndIsDeleted(activateAcademicYear().getId(), classId, false);
         return courseAssigmentMapper.toGradeDtoList(gradeList);
+    }
+
+    @Override
+    public UsersResponseDto getClassTeacherByGrade(UUID gradeId) {
+        Users foundUsers = gradeRepository.findClassTeacherByGrade(gradeId)
+                .orElseThrow(() -> new RuntimeException("Class Teacher Not Found") );
+        return usersMapper.toUsersDto(foundUsers);
+
+    }
+
+    @Override
+    public List<ClassGradeStatusProjection> getClassMidTermGrades() {
+        return gradeRepository.findClassMidTermGrades();
+    }
+
+    @Override
+    public List<ClassGradeStatusProjection> getClassMidTermGradesByClassTeacher(UUID teacherId) {
+        return gradeRepository.findClassMidTermGradesByClassTeacher(teacherId);
     }
 
     @Override

@@ -47,6 +47,9 @@ public class GradeResponseDto {
 
     private String feedback;
 
+
+    private UUID teacherId;
+
     private List<GradeDetailsResponseDto> gradeDetails;
 
 }

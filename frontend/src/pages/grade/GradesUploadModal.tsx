@@ -184,6 +184,7 @@ export default function GradesUploadModal({ isOpen, onClose, onSuccess }: Grades
               <option value="">Select Type</option>
               <option value="TEST">Test</option>
               <option value="EXAM">Exam</option>
+              <option value="MID_TERM">Mid Term</option>
             </select>
           </div>
 

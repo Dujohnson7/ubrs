@@ -2,7 +2,7 @@ package com.ubrs.ubrs_backend.service.grade;
 
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeResponseDto;
-import com.ubrs.ubrs_backend.domain.entity.Grade;
+import com.ubrs.ubrs_backend.domain.dto.users.UsersResponseDto;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeDetailProjection;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeStatusProjection;
 import com.ubrs.ubrs_backend.util.ETerm;
@@ -25,7 +25,11 @@ public interface IGradeService {
     List<GradeResponseDto> getAllGrades();
     List<GradeResponseDto> getAllGradesByTeacher(UUID teacherId);
     List<GradeResponseDto> getAllGradesByClass(UUID classId);
+    UsersResponseDto getClassTeacherByGrade(UUID gradeId);
 
+
+    List<ClassGradeStatusProjection> getClassMidTermGrades();
+    List<ClassGradeStatusProjection> getClassMidTermGradesByClassTeacher(UUID teacherId);
 
     List<ClassGradeStatusProjection> getClassGradeStatus();
     List<ClassGradeStatusProjection> getClassGradeStatusByClassTeacher(UUID teacherId);

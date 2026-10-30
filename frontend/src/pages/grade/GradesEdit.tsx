@@ -122,6 +122,7 @@ export default function GradesEdit() {
                     <select className={selectCls} value={gradeType} onChange={(e) => setGradeType(e.target.value as GradeType)}>
                       <option value="TEST">Test</option>
                       <option value="EXAM">Exam</option>
+                      <option value="MID_TERM">Mid Term</option>
                     </select>
                   </div>
                   <div>

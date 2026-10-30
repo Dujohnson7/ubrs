@@ -46,6 +46,10 @@ export default function Grades() {
       ]);
       setGrades(gradesData);
       setYears(yearsData);
+      const activeYear = yearsData?.find((y) => y.academicYearStatus === "ACTIVE");
+      if (activeYear) {
+        setYearFilter(activeYear.academicYearId);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -134,7 +138,9 @@ export default function Grades() {
                 <select className={selectCls} value={yearFilter} onChange={(e) => { setYearFilter(e.target.value); setPage(1); }}>
                   <option value="All">All Years</option>
                   {years.map(y => (
-                    <option key={y.academicYearId} value={y.academicYearId}>{y.fiscalYear}</option>
+                    <option key={y.academicYearId} value={y.academicYearId}>
+                      {y.fiscalYear}{y.academicYearStatus === "ACTIVE" ? " (Active)" : ""}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -153,6 +159,7 @@ export default function Grades() {
                   <option value="All">All Types</option>
                   <option value="TEST">Test</option>
                   <option value="EXAM">Exam</option>
+                  <option value="MID_TERM">Mid Term</option>
                 </select>
               </div>
               <div>

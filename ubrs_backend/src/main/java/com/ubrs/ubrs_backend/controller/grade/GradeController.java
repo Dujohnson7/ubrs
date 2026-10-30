@@ -2,6 +2,7 @@ package com.ubrs.ubrs_backend.controller.grade;
 
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeRequestDto;
 import com.ubrs.ubrs_backend.domain.dto.grade.GradeResponseDto;
+import com.ubrs.ubrs_backend.domain.dto.users.UsersResponseDto;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeDetailProjection;
 import com.ubrs.ubrs_backend.domain.projection.grade.ClassGradeStatusProjection;
 import com.ubrs.ubrs_backend.service.grade.IGradeService;
@@ -66,6 +67,17 @@ public class GradeController {
             }
         }catch(Exception e){
             return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
+    @GetMapping("/classTeacherByGrade/{gradeId}")
+    public ResponseEntity<?> classTeacherByGrade(@PathVariable String gradeId) {
+        try {
+            UsersResponseDto response = gradeService.getClassTeacherByGrade(UUID.fromString(gradeId));
+            return ResponseEntity.ok(response);
+        }  catch(Exception ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 
@@ -176,6 +188,36 @@ public class GradeController {
     public ResponseEntity<List<ClassGradeStatusProjection>> getAllClassGrade(){
         try {
             List<ClassGradeStatusProjection> gradesList = gradeService.getClassGradeStatus();
+            if (Objects.nonNull(gradesList)) {
+                return ResponseEntity.ok(gradesList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
+    @GetMapping("/getClassMidTermGrades")
+    public ResponseEntity<List<ClassGradeStatusProjection>> getClassMidTermGrades(){
+        try {
+            List<ClassGradeStatusProjection> gradesList = gradeService.getClassMidTermGrades();
+            if (Objects.nonNull(gradesList)) {
+                return ResponseEntity.ok(gradesList);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            }
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Collections.emptyList());
+        }
+    }
+
+
+    @GetMapping("/getClassMidTermGrades/classTeacher/{classTeacherId}")
+    public ResponseEntity<List<ClassGradeStatusProjection>> getClassMidTermGradesByClassTeacher(@PathVariable String classTeacherId){
+        try {
+            List<ClassGradeStatusProjection> gradesList = gradeService.getClassMidTermGradesByClassTeacher(UUID.fromString(classTeacherId));
             if (Objects.nonNull(gradesList)) {
                 return ResponseEntity.ok(gradesList);
             } else {

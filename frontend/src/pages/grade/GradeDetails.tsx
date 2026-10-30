@@ -6,18 +6,17 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { ChevronLeftIcon } from "../../icons";
-import { GradeResponseDto } from "../../services/gradeService";
+import { gradeService, GradeResponseDto } from "../../services/gradeService";
 import { useAuth } from "../../hooks/useAuth";
 import { courseAssignmentService } from "../../services/courseAssignmentService";
 import { userService } from "../../services/userService";
 import {
   cleanName,
   getSignatureUrl,
-  resolveHeadteacherSignatory,
+  resolveClassTeacherSignatory,
   resolveSignatory,
   ResolvedSignatory,
 } from "../../utils/signatureUtils";
-import PageSignatureBlock from "../../components/common/PageSignatureBlock";
 
 export default function GradeDetails() {
   const navigate = useNavigate();
@@ -30,22 +29,74 @@ export default function GradeDetails() {
     role: "Course Teacher",
     signatureUrl: "",
   });
-  const [headteacher, setHeadteacher] = useState<ResolvedSignatory>({
-    name: "Head Teacher",
-    role: "Head Teacher",
+  const [classTeacher, setClassTeacher] = useState<ResolvedSignatory>({
+    name: "Class Teacher",
+    role: "Class Teacher",
     signatureUrl: "",
   });
 
   useEffect(() => {
     let isMounted = true;
     async function loadSignatures() {
-      try {
-        const head = await resolveHeadteacherSignatory();
-        if (isMounted) setHeadteacher(head);
-      } catch (e) {
-        console.error("Failed to load headteacher signatory", e);
+      if (grade?.gradeId) {
+        try {
+          const ctUser = await gradeService.getClassTeacherByGrade(grade.gradeId);
+          if (ctUser && isMounted) {
+            setClassTeacher({
+              name: cleanName(ctUser.names) || "Class Teacher",
+              role: "Class Teacher",
+              signatureUrl: getSignatureUrl(ctUser.signature),
+            });
+          }
+        } catch (e) { 
+          try {
+            if (grade?.schoolClassId) {
+              const fallbackCt = await resolveClassTeacherSignatory(grade.schoolClassId);
+              if (isMounted && fallbackCt) {
+                setClassTeacher(fallbackCt);
+              }
+            }
+          } catch {}
+        }
+      } else if (grade?.schoolClassId) {
+        try {
+          const fallbackCt = await resolveClassTeacherSignatory(grade.schoolClassId);
+          if (isMounted && fallbackCt) {
+            setClassTeacher(fallbackCt);
+          }
+        } catch {}
       }
 
+      let courseTeacherFound = false;
+      try {
+        let teacherId = grade?.teacherId;
+        if (!teacherId && grade?.gradeId) {
+          try {
+            const freshGrade = await gradeService.getGradeById(grade.gradeId);
+            if (freshGrade?.teacherId) {
+              teacherId = freshGrade.teacherId;
+            }
+          } catch {}
+        }
+
+        if (teacherId) {
+          try {
+            const teacherUser = await userService.getUserById(teacherId);
+            if (teacherUser && isMounted) {
+              setCourseTeacher({
+                name: cleanName(teacherUser.names) || "Course Teacher",
+                role: "Course Teacher",
+                signatureUrl: getSignatureUrl(teacherUser.signature),
+              });
+              courseTeacherFound = true;
+            }
+          } catch (e) {
+          }
+        }
+      } catch (e) {
+      }
+
+      if (courseTeacherFound) return;
       try {
         if (grade?.schoolClassId && grade?.courseId) {
           const assignments = await courseAssignmentService.getAllCourseAssignments();
@@ -70,8 +121,7 @@ export default function GradeDetails() {
             return;
           }
         }
-      } catch (e) {
-        console.error("Failed to load course assignment teacher", e);
+      } catch (e) { 
       }
 
       if (user && (user.role === "TEACHER" || (user.role as string) === "CLASSTEACHER")) {
@@ -185,8 +235,7 @@ export default function GradeDetails() {
         <!-- SIGNATURES -->
         <div style="padding:30px 40px; display:flex; justify-content:space-between; font-size:12px; margin-top:20px;">
           <div style="text-align:center; min-width:200px; max-width:260px;">
-            <div style="font-size:13px; font-weight:bold; color:#000;">${courseTeacher.name}</div>
-            <div style="font-size:11px; color:#555; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px;">${courseTeacher.role}</div>
+            <div style="font-size:13px; font-weight:bold; color:#000;">${courseTeacher.name}</div> 
             <div style="min-height:50px; display:flex; align-items:center; justify-content:center; margin:6px 0;">
               ${
                 courseTeacher.signatureUrl
@@ -197,16 +246,15 @@ export default function GradeDetails() {
             <div style="border-top:1px solid #000; padding-top:4px;"><strong>Course Teacher Signature</strong></div>
           </div>
           <div style="text-align:center; min-width:200px; max-width:260px;">
-            <div style="font-size:13px; font-weight:bold; color:#000;">${headteacher.name}</div>
-            <div style="font-size:11px; color:#555; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px;">${headteacher.role}</div>
+            <div style="font-size:13px; font-weight:bold; color:#000;">${classTeacher.name}</div> 
             <div style="min-height:50px; display:flex; align-items:center; justify-content:center; margin:6px 0;">
               ${
-                headteacher.signatureUrl
-                  ? `<img src="${headteacher.signatureUrl}" alt="Headteacher Signature" style="max-height:48px; max-width:180px; object-fit:contain;" />`
+                classTeacher.signatureUrl
+                  ? `<img src="${classTeacher.signatureUrl}" alt="Class Teacher Signature" style="max-height:48px; max-width:180px; object-fit:contain;" />`
                   : `<div style="height:35px;"></div>`
               }
             </div>
-            <div style="border-top:1px solid #000; padding-top:4px;"><strong>Headteacher Signature</strong></div>
+            <div style="border-top:1px solid #000; padding-top:4px;"><strong>Class Teacher Signature</strong></div>
           </div>
         </div>
       </div>
@@ -282,7 +330,7 @@ export default function GradeDetails() {
             <div className="flex-1">
               <Input placeholder="Search by name, code, mark..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
             </div>
-            <Button size="sm" variant="outline" onClick={printReportFormat}>Download PDF</Button>
+            <Button size="sm" variant="primary" onClick={printReportFormat}>Download PDF</Button>
           </div>
 
           {/* Table */}
@@ -341,22 +389,6 @@ export default function GradeDetails() {
             </div>
           </div>
 
-          <PageSignatureBlock
-            signatories={[
-              {
-                title: "Course Teacher",
-                name: courseTeacher.name,
-                role: courseTeacher.role,
-                signatureUrl: courseTeacher.signatureUrl,
-              },
-              {
-                title: "Head Teacher",
-                name: headteacher.name,
-                role: headteacher.role,
-                signatureUrl: headteacher.signatureUrl,
-              },
-            ]}
-          />
         </ComponentCard>
       </div>
     </>

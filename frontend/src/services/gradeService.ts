@@ -1,7 +1,8 @@
 import { getApiUrl } from "../config/api";
 import { toast } from "../utils/toast";
+import { UsersResponseDto } from "./userService";
 
-export type GradeType = "TEST" | "EXAM";
+export type GradeType = "TEST" | "EXAM" | "MID_TERM";
 export type EGradeState = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
 export type ETerm = "TERM1" | "TERM2" | "TERM3";
 
@@ -36,6 +37,7 @@ export interface GradeResponseDto {
   term: string;
   schoolClassId: string;
   schoolClassName: string;
+  classLevel?: string;
   courseId: string;
   courseCode: string;
   courseName: string;
@@ -43,6 +45,7 @@ export interface GradeResponseDto {
   maxMark: number;
   submitStatus: string;
   feedback: string;
+  teacherId?: string;
   gradeDetails: GradeDetailsResponseDto[];
 }
 
@@ -228,6 +231,27 @@ async function deleteGrade(gradeId: string): Promise<void> {
   toast.success("Grade deleted successfully");
 }
 
+async function getClassMidTermGrades(): Promise<ClassGradeStatusProjection[]> {
+  const response = await fetch(getApiUrl("/api/grade/getClassMidTermGrades"));
+  if (!response.ok) {
+    throw new Error("Failed to load class mid-term grade status");
+  }
+  return parseJsonResponse<ClassGradeStatusProjection[]>(response, "Unable to parse class mid-term grade status.");
+}
+
+async function getClassMidTermGradesByClassTeacher(classTeacherId: string): Promise<ClassGradeStatusProjection[]> {
+  const response = await fetch(getApiUrl(`/api/grade/getClassMidTermGrades/classTeacher/${classTeacherId}`));
+  if (!response.ok) {
+    if (response.status === 404) return [];
+    try {
+      const data = await parseJsonResponse<ClassGradeStatusProjection[]>(response, "");
+      if (Array.isArray(data)) return data;
+    } catch { /* ignore */ }
+    throw new Error("Failed to load class mid-term grade status for class teacher");
+  }
+  return parseJsonResponse<ClassGradeStatusProjection[]>(response, "Unable to parse class mid-term grade status.");
+}
+
 async function getClassGradeStatus(): Promise<ClassGradeStatusProjection[]> {
   const response = await fetch(getApiUrl("/api/grade/classGrade"));
   if (!response.ok) {
@@ -285,11 +309,21 @@ async function getAllByAcademicYearAndTermAndSchoolClassAndCourse(
   return parseJsonResponse<GradeResponseDto[]>(response, "Unable to parse student grade data.");
 }
 
+async function getClassTeacherByGrade(gradeId: string): Promise<UsersResponseDto> {
+  const response = await fetch(getApiUrl(`/api/grade/classTeacherByGrade/${gradeId}`));
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to load class teacher for grade");
+  }
+  return parseJsonResponse<UsersResponseDto>(response, "Unable to parse class teacher data.");
+}
+
 export const gradeService = {
   getAllGrades,
   getAllGradesByTeacher,
   getAllGradesByClass,
   getGradeById,
+  getClassTeacherByGrade,
   saveGrade,
   importGrades,
   submitGrade,
@@ -301,4 +335,6 @@ export const gradeService = {
   getClassGradeStatusByClassTeacher,
   getClassGradeDetails,
   getAllByAcademicYearAndTermAndSchoolClassAndCourse,
+  getClassMidTermGrades,
+  getClassMidTermGradesByClassTeacher,
 };

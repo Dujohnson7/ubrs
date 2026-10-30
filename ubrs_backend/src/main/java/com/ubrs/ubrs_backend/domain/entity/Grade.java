@@ -33,7 +33,7 @@ public class Grade extends AbstractBaseEntity {
     @JoinColumn(name = "courseId")
     private Course course;
 
-    @Column(length = 6)
+    @Column(length = 8)
     @Enumerated(EnumType.STRING)
     private GradeType gradeType;
 

@@ -88,11 +88,12 @@ function ReportModal({ student, onClose, onPrint }: ReportModalProps) {
 export default function ClassStudentReports() {
   const { user } = useAuth();
   const isClassTeacher = user?.role === ERole.CLASSTEACHER;
-  const { classId } = useParams<{ classId: string }>();
+  const { classId: routeClassId } = useParams<{ classId?: string }>();
   const location = useLocation();
   const navigate = useNavigate();
 
   const stateClass = (location.state as { classData?: ClassInfo })?.classData;
+  const classId = routeClassId || stateClass?.id || "";
 
   const [classData, setClassData] = useState<ClassInfo | null>(stateClass || null);
   const [students, setStudents] = useState<StudentReport[]>([]);
@@ -165,6 +166,15 @@ export default function ClassStudentReports() {
           ? await studentReportService.getStudentGradeReportByClassTeacher(user.userId, academicYearId)
           : await studentReportService.getStudentGradeReport(academicYearId, classId);
         const reports = buildStudentReportsFromGrades(info, rows, term);
+
+        // Sort students by position (rank 1 first)
+        const getRankNum = (s: StudentReport) => {
+          const pos = getReportDisplaySummary(s).position;
+          const num = parseInt(pos, 10);
+          return isNaN(num) ? 999999 : num;
+        };
+        reports.sort((a, b) => getRankNum(a) - getRankNum(b));
+
         setStudents(reports);
         setClassData({ ...info, studentCount: reports.length });
       } catch (error) {
@@ -240,7 +250,7 @@ export default function ClassStudentReports() {
           </div>
         </div>
 
-        <ComponentCard title="Students" titleClassName="text-xl sm:text-2xl">
+        <ComponentCard title="Students Report" titleClassName="text-xl sm:text-2xl">
           <div className="rounded-3xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="grid gap-4 md:grid-cols-1fr items-end">
               <div>

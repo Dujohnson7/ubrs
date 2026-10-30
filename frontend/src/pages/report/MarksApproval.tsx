@@ -21,6 +21,24 @@ function StatusBadge({ status }: { status: ApprovalStatus }) {
   );
 }
 
+const normalizeTerm = (t?: string) => {
+  if (!t) return "";
+  const cleaned = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (cleaned === "1" || cleaned === "FIRST" || cleaned === "FIRSTTERM") return "TERM1";
+  if (cleaned === "2" || cleaned === "SECOND" || cleaned === "SECONDTERM") return "TERM2";
+  if (cleaned === "3" || cleaned === "THIRD" || cleaned === "THIRDTERM") return "TERM3";
+  return cleaned;
+};
+
+const formatTerm = (t?: string) => {
+  if (!t) return "—";
+  const norm = normalizeTerm(t);
+  if (norm === "TERM1") return "Term 1";
+  if (norm === "TERM2") return "Term 2";
+  if (norm === "TERM3") return "Term 3";
+  return t;
+};
+
 export default function MarksApproval() {
   const navigate = useNavigate();
   const { isSchoolBoardManager, isClassTeacher, user } = useRoleAccess();
@@ -30,6 +48,7 @@ export default function MarksApproval() {
   const [levelFilter, setLevelFilter] = useState("All");
   const [academicYears, setAcademicYears] = useState<AcademicYearResponseDto[]>([]);
   const [yearFilter, setYearFilter] = useState("All");
+  const [termFilter, setTermFilter] = useState("All");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
@@ -51,6 +70,11 @@ export default function MarksApproval() {
         ]);
         setData(res || []);
         setAcademicYears(years || []);
+
+        const activeYear = years?.find((y) => y.academicYearStatus === "ACTIVE");
+        if (activeYear) {
+          setYearFilter(activeYear.academicYearId);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -62,25 +86,66 @@ export default function MarksApproval() {
 
   const filtered = useMemo(() =>
     data.filter((c) => {
-      if (levelFilter !== "All" && !c.classLevel?.startsWith(levelFilter)) return false;
-      if (yearFilter !== "All" && c.academicYearId !== yearFilter) return false;
-      if (search && !c.className?.toLowerCase().includes(search.toLowerCase()) && !c.classTeacher?.toLowerCase().includes(search.toLowerCase())) return false;
+      if (levelFilter !== "All" && !c.classLevel?.toUpperCase().startsWith(levelFilter.toUpperCase())) return false;
+      if (yearFilter !== "All") {
+        const matchesId = c.academicYearId && c.academicYearId.toLowerCase() === yearFilter.toLowerCase();
+        const selYear = academicYears.find((y) => y.academicYearId.toLowerCase() === yearFilter.toLowerCase());
+        const matchesName = selYear && c.academicYear && c.academicYear.trim().toLowerCase() === selYear.fiscalYear.trim().toLowerCase();
+        if (!matchesId && !matchesName) return false;
+      }
+      if (termFilter !== "All") {
+        const normTerm = normalizeTerm(c.term);
+        const normFilter = normalizeTerm(termFilter);
+        if (normTerm !== normFilter) return false;
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        const matchName = c.className?.toLowerCase().includes(q);
+        const matchTeacher = c.classTeacher?.toLowerCase().includes(q);
+        const matchYear = c.academicYear?.toLowerCase().includes(q);
+        if (!matchName && !matchTeacher && !matchYear) return false;
+      }
       return true;
     }),
-  [data, search, levelFilter, yearFilter]);
+  [data, search, levelFilter, yearFilter, termFilter, academicYears]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Overall stats
-  const overallStats = {
-    classes: data.length,
-    approved: data.reduce((sum, c) => sum + (c.approved || 0), 0),
-    submitted: 0,
-    pending: data.reduce((sum, c) => sum + ((c.subjects || 0) - (c.approved || 0)), 0),
-    rejected: 0,
-  };
+  // Overall stats computed dynamically from filtered set
+  const overallStats = useMemo(() => {
+    let approvedSubjects = 0;
+    let totalSubjects = 0;
+    let submittedCount = 0;
+    let rejectedCount = 0;
+    let pendingCount = 0;
+
+    filtered.forEach((c) => {
+      const app = c.approved || 0;
+      const subj = c.subjects || 0;
+      approvedSubjects += app;
+      totalSubjects += subj;
+      const st = normalizeApprovalStatus(c.status);
+      if (st === "submitted") submittedCount += 1;
+      else if (st === "rejected") rejectedCount += 1;
+      else if (st === "pending" || (!st && app < subj)) pendingCount += 1;
+    });
+
+    return {
+      classes: filtered.length,
+      approved: approvedSubjects,
+      submitted: submittedCount,
+      pending: Math.max(0, totalSubjects - approvedSubjects),
+      rejected: rejectedCount,
+    };
+  }, [filtered]);
+
+  const hasDataInOtherYears = useMemo(() => {
+    if (termFilter === "All" || yearFilter === "All") return false;
+    const normFilter = normalizeTerm(termFilter);
+    return data.some((c) => normalizeTerm(c.term) === normFilter);
+  }, [data, termFilter, yearFilter]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Loading...</div>;
 
@@ -90,7 +155,7 @@ export default function MarksApproval() {
       <PageBreadcrumb pageTitle="Marks Approval" />
 
       <div className="space-y-6">
-        {/* Overall summary pills / cards at the top instead of a big banner */}
+        {/* Overall summary pills / cards at the top */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: "Classes",   val: overallStats.classes,   bg: "bg-gray-50 dark:bg-gray-800/50", border: "border-gray-200 dark:border-gray-700", text: "text-gray-800 dark:text-gray-200" },
@@ -109,7 +174,7 @@ export default function MarksApproval() {
         <ComponentCard title="Classes Pending Review" titleClassName="text-xl sm:text-2xl">
           {/* Filters */}
           <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] mb-5">
-            <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr] items-end">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] items-end">
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Search Classes</label>
                 <Input placeholder="Search by class name or teacher..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
@@ -133,8 +198,23 @@ export default function MarksApproval() {
                 >
                   <option value="All">All Years</option>
                   {academicYears.map((y) => (
-                    <option key={y.academicYearId} value={y.academicYearId}>{y.fiscalYear}</option>
+                    <option key={y.academicYearId} value={y.academicYearId}>
+                      {y.fiscalYear}{y.academicYearStatus === "ACTIVE" ? " (Active)" : ""}
+                    </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-2">Term</label>
+                <select
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  value={termFilter}
+                  onChange={(e) => { setTermFilter(e.target.value); setPage(1); }}
+                >
+                  <option value="All">All Terms</option>
+                  <option value="TERM1">Term 1</option>
+                  <option value="TERM2">Term 2</option>
+                  <option value="TERM3">Term 3</option>
                 </select>
               </div>
             </div>
@@ -146,7 +226,7 @@ export default function MarksApproval() {
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    {["#","Class","Level","Class Teacher","Term","Subjects","Approved","Status", ...(!isSchoolBoardManager ? ["Action"] : [])].map((h) => (
+                    {["#","Class","Level","Academic Year","Class Teacher","Term","Subjects","Approved","Status", ...(!isSchoolBoardManager ? ["Action"] : [])].map((h) => (
                       <TableCell key={h} isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 whitespace-nowrap">{h}</TableCell>
                     ))}
                   </TableRow>
@@ -154,7 +234,25 @@ export default function MarksApproval() {
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginated.length === 0 ? (
                     <TableRow>
-                      <TableCell className="px-5 py-10 text-center text-gray-400" colSpan={!isSchoolBoardManager ? 9 : 8}>No classes found.</TableCell>
+                      <TableCell className="px-5 py-10 text-center text-gray-400" colSpan={!isSchoolBoardManager ? 10 : 9}>
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <p>No classes found.</p>
+                          {hasDataInOtherYears && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-amber-600 dark:text-amber-400">
+                                Classes exist for {formatTerm(termFilter)} in other academic years.
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setYearFilter("All")}
+                                className="text-xs font-bold text-brand-600 dark:text-brand-400 underline hover:text-brand-700"
+                              >
+                                Switch to All Years
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ) : paginated.map((cls, idx) => {
                     const approved = cls.approved || 0;
@@ -162,7 +260,7 @@ export default function MarksApproval() {
                     const pct      = total ? Math.round((approved / total) * 100) : 0;
                     const status   = normalizeApprovalStatus(cls.status);
                     return (
-                      <TableRow key={cls.classId} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors">
+                      <TableRow key={`${cls.classId}-${cls.academicYearId || cls.academicYear || ''}-${cls.term || ''}-${idx}`} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors">
                         <TableCell className="px-5 py-4 text-gray-400 text-xs">{(currentPage - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell className="px-5 py-4">
                           <button
@@ -175,8 +273,11 @@ export default function MarksApproval() {
                           </button>
                         </TableCell>
                         <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{cls.classLevel}</TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">
+                          {cls.academicYear || academicYears.find((y) => y.academicYearId?.toLowerCase() === cls.academicYearId?.toLowerCase())?.fiscalYear || "—"}
+                        </TableCell>
                         <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{cls.classTeacher}</TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{cls.term}</TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{formatTerm(cls.term)}</TableCell>
                         <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-200">{total}</TableCell>
                         <TableCell className="px-5 py-4">
                           <div className="flex items-center gap-2">

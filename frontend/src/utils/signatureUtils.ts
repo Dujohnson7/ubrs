@@ -1,5 +1,6 @@
 import { API_CONFIG } from "../config/api";
 import { userService } from "../services/userService";
+import { schoolClassService } from "../services/schoolClassService";
 import { UsersResponseDto } from "../services/authService";
 
 export const cleanName = (name?: string | null): string => {
@@ -87,16 +88,14 @@ export async function resolveSignatory(
   if (user && user.names) {
     let signature = user.signature;
 
-    // If signature is missing from cached user, try fetching fresh from userService
-    if (!signature && user.userId) {
+     if (!signature && user.userId) {
       try {
         const freshUser = await userService.getUserById(user.userId);
         if (freshUser?.signature) {
           signature = freshUser.signature;
         }
       } catch {
-        // ignore fallback
-      }
+       }
     }
 
     return {
@@ -106,6 +105,46 @@ export async function resolveSignatory(
     };
   }
 
-  // If no user, fallback to Head Teacher
-  return resolveHeadteacherSignatory();
+   return resolveHeadteacherSignatory();
+}
+
+export async function resolveClassTeacherSignatory(
+  schoolClassId?: string
+): Promise<ResolvedSignatory> {
+  if (!schoolClassId) {
+    return {
+      name: "Class Teacher",
+      role: "Class Teacher",
+      signatureUrl: "",
+    };
+  }
+
+  try {
+    const schoolClass = await schoolClassService.getSchoolClassById(schoolClassId);
+    let teacherName = cleanName(schoolClass.classTeacherName) || "Class Teacher";
+    let sigUrl = "";
+
+    if (schoolClass.classTeacherId) {
+      try {
+        const teacherUser = await userService.getUserById(schoolClass.classTeacherId);
+        sigUrl = getSignatureUrl(teacherUser.signature);
+        if (teacherUser?.names) {
+          teacherName = cleanName(teacherUser.names);
+        }
+      } catch {}
+    }
+
+    return {
+      name: teacherName,
+      role: "Class Teacher",
+      signatureUrl: sigUrl,
+    };
+  } catch (err) {
+    console.error("Failed to load class teacher signatory", err);
+    return {
+      name: "Class Teacher",
+      role: "Class Teacher",
+      signatureUrl: "",
+    };
+  }
 }

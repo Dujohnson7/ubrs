@@ -98,6 +98,12 @@ const allNavItems: NavItem[] = [
   },
   {
     icon: <TableIcon />,
+    name: "Children Mid Term Reports",
+    path: "/parent/mid-term-reports",
+    roles: [ERole.PARENT],
+  },
+  {
+    icon: <TableIcon />,
     name: "Children Reports",
     path: "/parent/reports",
     roles: [ERole.PARENT],
@@ -153,9 +159,10 @@ const allNavItems: NavItem[] = [
     roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER],
     subItems: [
       { name: "Student Reports", path: "/student-reports", roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
+      { name: "Mid Term Reports", path: "/midterm-reports", roles: [ERole.HEADERTEACHER, ERole.CLASSTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
       { name: "School Report", path: "/school-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
       { name: "Financial Report", path: "/financial-report", roles: [ERole.HEADERTEACHER, ERole.SCHOOL_BOARD_MANAGER] },
-    ],
+    ], 
   },
   {
     icon: <TableIcon />,
