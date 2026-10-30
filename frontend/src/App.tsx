@@ -48,6 +48,7 @@ import SubjectMarksApproval from "./pages/report/SubjectMarksApproval";
 import SchoolReports from "./pages/report/SchoolReports";
 import FinancialReport from "./pages/report/FinancialReport";
 import ParentReports from "./pages/report/ParentReports";
+import ParentMidTermReports from "./pages/report/ParentMidTermReports";
 import MidTermReport from "./pages/report/MidTermReport";
 import ClassMidTermReport from "./pages/report/ClassMidTermReport";
 import SchoolFees from "./pages/schoolFees/SchoolFees";
@@ -122,6 +123,9 @@ export default function App() {
             <Route path="/financial-report" element={<FinancialReport />} />
             <Route path="/parent/reports" element={<ParentReports />} />
             <Route path="/parent-reports" element={<ParentReports />} />
+            <Route path="/parent/mid-term-reports" element={<ParentMidTermReports />} />
+            <Route path="/parent-mid-term-reports" element={<ParentMidTermReports />} />
+            <Route path="/parent/midterm-reports" element={<ParentMidTermReports />} />
             <Route path="/midterm-reports" element={<MidTermReport />} />
             <Route path="/midterm-reports/detail" element={<ClassMidTermReport />} />
             <Route path="/parent/school-fees" element={<ParentSchoolFees />} />

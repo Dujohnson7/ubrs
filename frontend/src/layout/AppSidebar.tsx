@@ -98,7 +98,7 @@ const allNavItems: NavItem[] = [
   },
   {
     icon: <TableIcon />,
-    name: "Children Mid Term Reports",
+    name: "Children Mid Term",
     path: "/parent/mid-term-reports",
     roles: [ERole.PARENT],
   },
@@ -199,6 +199,7 @@ const AppSidebar: React.FC = () => {
         (n) =>
           n.path === "/" ||
           n.path === "/parent/reports" ||
+          n.path === "/parent/mid-term-reports" ||
           n.path === "/parent/school-fees" ||
           n.path === "/profile"
       );
